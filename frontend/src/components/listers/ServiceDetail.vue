@@ -29,6 +29,9 @@
             <div>
                 <String label="EngineerName" v-model="item.engineerName" :editMode="editMode" @change="change" />
             </div>
+            <div>
+                <String label="ProductId" v-model="item.productId" :editMode="editMode" @change="change" />
+            </div>
         </v-card-text>
 
         <v-card-actions>

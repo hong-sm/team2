@@ -18,6 +18,7 @@
                             
                             
                             
+                            
                         </v-list-item-title>
 
                         <v-list-item-subtitle style="font-size:25px; font-weight:700;">
@@ -30,6 +31,7 @@
                             [ Price :  {{data.price }} ] &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                             [ Symtom :  {{data.symtom }} ] &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                             [ EngineerName :  {{data.engineerName }} ] &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                            [ ProductId :  {{data.productId }} ] &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                         </v-list-item-subtitle>
 
                     </v-list-item-content>
@@ -119,6 +121,7 @@
                 'price': 0,
                 'symtom': '',
                 'engineerName': '',
+                'productId': '',
             }
         },
         methods: {

@@ -70,6 +70,12 @@ public class Service  {
     
     
     private String engineerName;
+    
+    
+    
+    
+    
+    private String productId;
 
     @PostPersist
     public void onPostPersist(){

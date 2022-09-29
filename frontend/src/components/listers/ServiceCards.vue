@@ -76,6 +76,7 @@
                 'price': 0,
                 'symtom': '',
                 'engineerName': '',
+                'productId': '',
             }
         },
         methods:{

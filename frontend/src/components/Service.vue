@@ -25,6 +25,7 @@
             <Number label="Price" v-model="value.price" :editMode="editMode"/>
             <String label="Symtom" v-model="value.symtom" :editMode="editMode"/>
             <String label="EngineerName" v-model="value.engineerName" :editMode="editMode"/>
+            <String label="ProductId" v-model="value.productId" :editMode="editMode"/>
         </v-card-text>
 
         <v-card-actions>

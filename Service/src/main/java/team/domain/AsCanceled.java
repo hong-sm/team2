@@ -18,6 +18,7 @@ public class AsCanceled extends AbstractEvent {
     private Integer price;
     private String symtom;
     private String engineerName;
+    private String productId;
 
     public AsCanceled(Service aggregate){
         super(aggregate);
