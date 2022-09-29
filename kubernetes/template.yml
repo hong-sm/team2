@@ -1,0 +1,285 @@
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: Request
+  labels:
+    app: Request
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: Request
+  template:
+    metadata:
+      labels:
+        app: Request
+    spec:
+      containers:
+        - name: Request
+          image: username/Request:latest
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+            initialDelaySeconds: 10
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 10
+          livenessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+            initialDelaySeconds: 120
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 5
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: Service
+  labels:
+    app: Service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: Service
+  template:
+    metadata:
+      labels:
+        app: Service
+    spec:
+      containers:
+        - name: Service
+          image: username/Service:latest
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+            initialDelaySeconds: 10
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 10
+          livenessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+            initialDelaySeconds: 120
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 5
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: Stock
+  labels:
+    app: Stock
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: Stock
+  template:
+    metadata:
+      labels:
+        app: Stock
+    spec:
+      containers:
+        - name: Stock
+          image: username/Stock:latest
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+            initialDelaySeconds: 10
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 10
+          livenessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+            initialDelaySeconds: 120
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 5
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: Payment
+  labels:
+    app: Payment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: Payment
+  template:
+    metadata:
+      labels:
+        app: Payment
+    spec:
+      containers:
+        - name: Payment
+          image: username/Payment:latest
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+            initialDelaySeconds: 10
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 10
+          livenessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+            initialDelaySeconds: 120
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 5
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: view
+  labels:
+    app: view
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: view
+  template:
+    metadata:
+      labels:
+        app: view
+    spec:
+      containers:
+        - name: view
+          image: username/view:latest
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+            initialDelaySeconds: 10
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 10
+          livenessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+            initialDelaySeconds: 120
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 5
+
+
+---
+
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: Request
+  labels:
+    app: Request
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: Request
+
+
+---
+
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: Service
+  labels:
+    app: Service
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: Service
+
+
+---
+
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: Stock
+  labels:
+    app: Stock
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: Stock
+
+
+---
+
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: Payment
+  labels:
+    app: Payment
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: Payment
+
+
+---
+
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: view
+  labels:
+    app: view
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: view
+
