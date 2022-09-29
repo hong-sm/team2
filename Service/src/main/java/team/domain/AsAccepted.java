@@ -18,6 +18,7 @@ public class AsAccepted extends AbstractEvent {
     private String symtom;
     private Date date;
     private String engineerName;
+    private String productId;
 
     public AsAccepted(Service aggregate){
         super(aggregate);

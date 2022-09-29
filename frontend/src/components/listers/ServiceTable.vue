@@ -75,6 +75,7 @@
                     { text: "price", value: "price" },
                     { text: "symtom", value: "symtom" },
                     { text: "engineerName", value: "engineerName" },
+                    { text: "productId", value: "productId" },
                 ],
             service : [],
             newValue: {},
@@ -100,6 +101,7 @@
                 'price': 0,
                 'symtom': '',
                 'engineerName': '',
+                'productId': '',
             }
         },
         methods: {
