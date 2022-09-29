@@ -33,7 +33,7 @@ public class PolicyHandler{
         
 
         // Sample Logic //
-        Service.loadToServiceList(event);
+        team.domain.Service.loadToServiceList(event);
         
 
         
@@ -50,7 +50,7 @@ public class PolicyHandler{
         
 
         // Sample Logic //
-        Service.cancelAs(event);
+        team.domain.Service.cancelAs(event);
         
 
         

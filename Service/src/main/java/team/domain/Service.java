@@ -113,11 +113,15 @@ public class Service  {
 
     public static void loadToServiceList(ServiceRequested serviceRequested){
 
-        /** Example 1:  new item 
+        
+        //AS요청으로 부터 받은 정보 세팅
         Service service = new Service();
-        repository().save(service);
-
-        */
+        service.setCustomerName(serviceRequested.getCustomerName());
+        service.setDate(serviceRequested.getDate());
+        service.setPhoneNumber(serviceRequested.getPhoneNumber());
+        service.setRequestId(serviceRequested.getId());
+        service.setStatus("REQUESTED");        
+        repository().save(service);        
 
         /** Example 2:  finding and process
         

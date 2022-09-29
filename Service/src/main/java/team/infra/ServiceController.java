@@ -11,6 +11,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.transaction.Transactional;
 
+import team.ServiceApplication;
+
 @RestController
 // @RequestMapping(value="/services")
 @Transactional
@@ -44,12 +46,14 @@ public class ServiceController {
         produces = "application/json;charset=UTF-8")
     public Service accept(@PathVariable(value = "id") Long id, HttpServletRequest request, HttpServletResponse response) throws Exception {
             System.out.println("##### /service/accept  called #####");
+            
             Optional<Service> optionalService = serviceRepository.findById(id);
             
             optionalService.orElseThrow(()-> new Exception("No Entity Found"));
             Service service = optionalService.get();
-            service.accept();
             
+            service.accept();
+         
             serviceRepository.save(service);
             return service;
             
