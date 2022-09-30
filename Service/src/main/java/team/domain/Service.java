@@ -116,6 +116,7 @@ public class Service  {
         repository().findById(repaired.getId()).ifPresent(service->{
             
             service.setStatus("PAID"); 
+            service.setDate(new Date());
             repository().save(service);
         });
 
@@ -136,6 +137,7 @@ public class Service  {
         service.setPhoneNumber(serviceRequested.getPhoneNumber());
         service.setRequestId(serviceRequested.getId());        
         service.setProductId(serviceRequested.getProductId());
+        service.setDate(new Date());
         service.setStatus("REQUESTED");        
         repository().save(service);        
 
@@ -166,6 +168,7 @@ public class Service  {
         repository().findByRequestId(serviceCancelled.getId()).ifPresent(service->{
             
             service.setStatus("CANCELED"); // do something
+            service.setDate(new Date());
             repository().save(service);
 
             AsCanceled asCanceled = new AsCanceled(service);

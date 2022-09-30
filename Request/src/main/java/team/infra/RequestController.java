@@ -5,6 +5,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Date;
 import java.util.Optional;
 
 import javax.servlet.http.HttpServletRequest;
@@ -31,6 +33,7 @@ public class RequestController {
             optionalRequest.orElseThrow(()-> new Exception("No Entity Found"));
             Request ASrequest = optionalRequest.get();
             ASrequest.serviceCancel();
+            ASrequest.setDate(new Date());
             ASrequest.setStatus("CANCELLED");
 
             requestRepository.save(ASrequest);

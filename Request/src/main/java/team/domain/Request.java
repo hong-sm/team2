@@ -3,6 +3,9 @@ package team.domain;
 import team.domain.ServiceRequested;
 import team.RequestApplication;
 import javax.persistence.*;
+
+import org.hibernate.annotations.CreationTimestamp;
+
 import java.util.List;
 import lombok.Data;
 import java.util.Date;
@@ -49,8 +52,8 @@ public class Request  {
     
     
     
-    
-    
+       
+    @CreationTimestamp
     private Date date;
     
     

@@ -23,5 +23,4 @@ public class ProgressView {
         private String payStatus;
         private Date payDate;
 
-
 }
