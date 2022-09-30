@@ -53,11 +53,13 @@ public class Request  {
     
     
        
-    @CreationTimestamp
     private Date date;
     
     
-    
+    @PrePersist
+    public void onInitData(){
+        setDate(new Date());
+    }
     
     
     private String status;

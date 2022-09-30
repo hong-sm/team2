@@ -34,8 +34,7 @@ public class Pay  {
     
     
     
-    
-    @CreationTimestamp
+        
     private Date payDate;
     
     
@@ -49,6 +48,11 @@ public class Pay  {
     
     
     private String status;
+
+    @PrePersist
+    public void onInitData(){
+        setPayDate(new Date());
+    }
 
     @PostPersist
     public void onPostPersist(){
