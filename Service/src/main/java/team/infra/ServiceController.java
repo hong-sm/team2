@@ -62,7 +62,8 @@ public class ServiceController {
                 
                 service.setStatus("OUTOFSTOCK");
                 serviceRepository.save(service);
-                throw new RuntimeException("Insuffient Stock!");
+                return service;
+                //throw new RuntimeException("Insuffient Stock!");
             }
             service.accept();
             service.setStatus("ACCEPTED");
