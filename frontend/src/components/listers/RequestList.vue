@@ -15,6 +15,7 @@
                             
                             
                             
+                            
                         </v-list-item-title>
 
                         <v-list-item-subtitle style="font-size:25px; font-weight:700;">
@@ -24,6 +25,7 @@
                             [ CustomerName :  {{data.customerName }} ] &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                             [ PhoneNumber :  {{data.phoneNumber }} ] &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                             [ Date :  {{data.date }} ] &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                            [ IsCancel :  {{data.isCancel }} ] &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                         </v-list-item-subtitle>
 
                     </v-list-item-content>
@@ -109,7 +111,8 @@
                 'productId': '',
                 'customerName': '',
                 'phoneNumber': '',
-                'date': '2022-09-29',
+                'date': '2022-09-30',
+                'isCancel': false,
             }
         },
         methods: {

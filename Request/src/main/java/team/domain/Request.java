@@ -53,6 +53,12 @@ public class Request  {
     
     
     private Date date;
+    
+    
+    
+    
+    
+    private Boolean isCancel;
 
     @PostPersist
     public void onPostPersist(){

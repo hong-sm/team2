@@ -72,7 +72,8 @@
                 'productId': '',
                 'customerName': '',
                 'phoneNumber': '',
-                'date': '2022-09-29',
+                'date': '2022-09-30',
+                'isCancel': false,
             }
         },
         methods:{

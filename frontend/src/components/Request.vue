@@ -22,6 +22,7 @@
             <String label="CustomerName" v-model="value.customerName" :editMode="editMode"/>
             <String label="PhoneNumber" v-model="value.phoneNumber" :editMode="editMode"/>
             <Date label="Date" v-model="value.date" :editMode="editMode"/>
+            <Boolean label="IsCancel" v-model="value.isCancel" :editMode="editMode"/>
         </v-card-text>
 
         <v-card-actions>

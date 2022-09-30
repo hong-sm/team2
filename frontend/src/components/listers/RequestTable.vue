@@ -72,6 +72,7 @@
                     { text: "customerName", value: "customerName" },
                     { text: "phoneNumber", value: "phoneNumber" },
                     { text: "date", value: "date" },
+                    { text: "isCancel", value: "isCancel" },
                 ],
             request : [],
             newValue: {},
@@ -93,7 +94,8 @@
                 'productId': '',
                 'customerName': '',
                 'phoneNumber': '',
-                'date': '2022-09-29',
+                'date': '2022-09-30',
+                'isCancel': false,
             }
         },
         methods: {
