@@ -9,7 +9,7 @@ public class StockServiceImpl implements StockService {
     /**
      * Fallback
      */
-    public Stock getStock(Long id) {
+    public Stock getStock(String id) {
         Stock stock = new Stock();
         return stock;
     }

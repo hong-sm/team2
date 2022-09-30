@@ -30,10 +30,11 @@ public class ServiceController {
             Optional<Service> optionalService = serviceRepository.findById(id);
             
             optionalService.orElseThrow(()-> new Exception("No Entity Found"));
-            Service service = optionalService.get();
-            service.productRepair();
+            Service service = optionalService.get();            
             service.setStatus("REPAIRED");
             serviceRepository.save(service);
+            service.productRepair();
+
             return service;
             
     }
@@ -55,15 +56,17 @@ public class ServiceController {
 
             team.external.Stock stock =
             ServiceApplication.applicationContext.getBean(team.external.StockService.class)
-            .getStock(Long.parseLong(service.getProductId()));
+            .getStock(service.getProductId());
 
-            if(stock.getStock() < 1) {
+            if(stock == null || stock.getStock() == null || stock.getStock() < 1) {
+                
                 service.setStatus("OUTOFSTOCK");
                 serviceRepository.save(service);
                 throw new RuntimeException("Insuffient Stock!");
             }
             service.accept();
             service.setStatus("ACCEPTED");
+            service.setPrice(stock.getUnitPrice());
             serviceRepository.save(service);
             return service;
             

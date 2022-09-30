@@ -18,6 +18,21 @@ public class StockController {
     @Autowired
     StockRepository stockRepository;
 
+    @RequestMapping(value = "stocks/product/{id}",
+    method = RequestMethod.GET,
+    produces = "application/json;charset=UTF-8")
+    public Stock accept(@PathVariable(value = "id") String relatedProductId, HttpServletRequest request, HttpServletResponse response) throws Exception {
+        System.out.println("##### /stocks/product  called #####");
+        
+        Optional<Stock> optionalStock = stockRepository.findByRelatedProductId(relatedProductId);
+        
+        optionalStock.orElseThrow(()-> new Exception("No Entity Found"));                        
+        
+        Stock stock = optionalStock.get();
+        return stock;
+        
+}
+
 
 
 
