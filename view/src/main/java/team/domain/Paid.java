@@ -1,9 +1,11 @@
-package team.external;
+package team.domain;
 
+import team.infra.AbstractEvent;
 import lombok.Data;
-import java.util.Date;
+import java.util.*;
+
 @Data
-public class Pay {
+public class Paid extends AbstractEvent {
 
     private Long id;
     private Long requestId;
@@ -11,5 +13,3 @@ public class Pay {
     private Integer price;
     private String status;
 }
-
-
