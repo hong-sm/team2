@@ -40,6 +40,12 @@ public class Pay  {
     
     
     private Integer price;
+    
+    
+    
+    
+    
+    private String status;
 
     @PostPersist
     public void onPostPersist(){

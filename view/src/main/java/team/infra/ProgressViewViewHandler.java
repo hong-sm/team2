@@ -105,6 +105,27 @@ public class ProgressViewViewHandler {
             e.printStackTrace();
         }
     }
+    @StreamListener(KafkaProcessor.INPUT)
+    public void whenPaid_then_UPDATE_4(@Payload Paid paid) {
+        try {
+            if (!paid.validate()) return;
+                // view 객체 조회
+            Optional<ProgressView> progressViewOptional = progressViewRepository.findById(paid.getRequestId());
+
+            if( progressViewOptional.isPresent()) {
+                 ProgressView progressView = progressViewOptional.get();
+            // view 객체에 이벤트의 eventDirectValue 를 set 함
+                progressView.setStatus(paid.getStatus());    
+                progressView.setServiceDate(paid.getPayDate());    
+                // view 레파지 토리에 save
+                 progressViewRepository.save(progressView);
+                }
+
+
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
 
 }
 
