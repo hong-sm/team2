@@ -29,11 +29,12 @@ public class RequestController {
             Optional<Request> optionalRequest = requestRepository.findById(id);
             
             optionalRequest.orElseThrow(()-> new Exception("No Entity Found"));
-            Request request = optionalRequest.get();
-            request.serviceCancel();
-            
-            requestRepository.save(request);
-            return request;
+            Request ASrequest = optionalRequest.get();
+            ASrequest.serviceCancel();
+            ASrequest.setStatus("CANCELLED");
+
+            requestRepository.save(ASrequest);
+            return ASrequest;
             
     }
     

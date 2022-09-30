@@ -13,5 +13,11 @@ public class PayServiceImpl implements PayService {
         Pay pay = new Pay();
         return pay;
     }
+
+    @Override
+    public void pay(Pay pay) {
+        // TODO Auto-generated method stub
+        
+    }
 }
 
