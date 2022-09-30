@@ -11,6 +11,7 @@ public class RequestHateoasProcessor implements RepresentationModelProcessor<Ent
 
     @Override
     public EntityModel<Request> process(EntityModel<Request> model) {
+        model.add(Link.of(model.getRequiredLink("self").getHref() + "/servicecancel").withRel("servicecancel"));
 
         
         return model;

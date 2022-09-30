@@ -21,5 +21,23 @@ public class RequestController {
 
 
 
+    @RequestMapping(value = "requests/{id}/servicecancel",
+        method = RequestMethod.PUT,
+        produces = "application/json;charset=UTF-8")
+    public Request serviceCancel(@PathVariable(value = "id") Long id, HttpServletRequest request, HttpServletResponse response) throws Exception {
+            System.out.println("##### /request/serviceCancel  called #####");
+            Optional<Request> optionalRequest = requestRepository.findById(id);
+            
+            optionalRequest.orElseThrow(()-> new Exception("No Entity Found"));
+            Request request = optionalRequest.get();
+            request.serviceCancel();
+            
+            requestRepository.save(request);
+            return request;
+            
+    }
+    
+
+
 
 }
