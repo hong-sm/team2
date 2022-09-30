@@ -63,14 +63,14 @@ public class Request  {
     @PostPersist
     public void onPostPersist(){
 
-        
-        ServiceRequested serviceRequested = new ServiceRequested(this);
-        serviceRequested.publishAfterCommit();
-
-
-
-        ServiceCancelled serviceCancelled = new ServiceCancelled(this);
-        serviceCancelled.publishAfterCommit();
+        if(!this.getIsCancel()){
+            ServiceRequested serviceRequested = new ServiceRequested(this);
+            this.setIsCancel(false);
+            serviceRequested.publishAfterCommit();
+        }else{
+            ServiceCancelled serviceCancelled = new ServiceCancelled(this);
+            serviceCancelled.publishAfterCommit();
+        }
 
     }
 
