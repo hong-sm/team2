@@ -1,7 +1,6 @@
 package team.domain;
 
 import team.domain.ServiceRequested;
-import team.domain.ServiceCancelled;
 import team.RequestApplication;
 import javax.persistence.*;
 import java.util.List;
@@ -58,19 +57,14 @@ public class Request  {
     
     
     
-    private Boolean isCancel;
+    private String status;
 
     @PostPersist
     public void onPostPersist(){
 
-        if(!this.getIsCancel()){
-            ServiceRequested serviceRequested = new ServiceRequested(this);
-            this.setIsCancel(false);
-            serviceRequested.publishAfterCommit();
-        }else{
-            ServiceCancelled serviceCancelled = new ServiceCancelled(this);
-            serviceCancelled.publishAfterCommit();
-        }
+
+        ServiceRequested serviceRequested = new ServiceRequested(this);
+        serviceRequested.publishAfterCommit();
 
     }
 
@@ -81,6 +75,11 @@ public class Request  {
 
 
 
+    public void serviceCancel(){
+        ServiceCancelled serviceCancelled = new ServiceCancelled(this);        
+        serviceCancelled.publishAfterCommit();
+
+    }
 
 
 
