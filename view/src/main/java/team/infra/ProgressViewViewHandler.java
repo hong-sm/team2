@@ -115,8 +115,8 @@ public class ProgressViewViewHandler {
             if( progressViewOptional.isPresent()) {
                  ProgressView progressView = progressViewOptional.get();
             // view 객체에 이벤트의 eventDirectValue 를 set 함
-                progressView.setStatus(paid.getStatus());    
-                progressView.setServiceDate(paid.getPayDate());    
+                progressView.setPayStatus(paid.getStatus());    
+                progressView.setPayDate(paid.getPayDate());    
                 // view 레파지 토리에 save
                  progressViewRepository.save(progressView);
                 }
