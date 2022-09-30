@@ -18,7 +18,6 @@ public class ProgressView {
         private String customerName;
         private String phoneNumber;
         private Date requestDate;
-        private Long requestId;
         private String status;
         private Date serviceDate;
 

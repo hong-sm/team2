@@ -27,12 +27,12 @@ public class ProgressViewViewHandler {
             // view 객체 생성
             ProgressView progressView = new ProgressView();
             // view 객체에 이벤트의 Value 를 set 함
-            progressView.setRequestId(serviceRequested.getId());
             progressView.setSymtom(serviceRequested.getSymtom());
             progressView.setProductId(serviceRequested.getProductId());
             progressView.setCustomerName(serviceRequested.getCustomerName());
             progressView.setPhoneNumber(serviceRequested.getPhoneNumber());
             progressView.setRequestDate(serviceRequested.getDate());
+            progressView.setId(serviceRequested.getId());
             // view 레파지 토리에 save
             progressViewRepository.save(progressView);
 
@@ -47,15 +47,17 @@ public class ProgressViewViewHandler {
         try {
             if (!asAccepted.validate()) return;
                 // view 객체 조회
+            Optional<ProgressView> progressViewOptional = progressViewRepository.findById(asAccepted.getRequestId());
 
-                List<ProgressView> progressViewList = progressViewRepository.findByRequestId(asAccepted.getRequestId());
-                for(ProgressView progressView : progressViewList){
-                    // view 객체에 이벤트의 eventDirectValue 를 set 함
-                    progressView.setStatus(asAccepted.getStatus());
-                    progressView.setServiceDate(asAccepted.getDate());
+            if( progressViewOptional.isPresent()) {
+                 ProgressView progressView = progressViewOptional.get();
+            // view 객체에 이벤트의 eventDirectValue 를 set 함
+                progressView.setStatus(asAccepted.getStatus());    
+                progressView.setServiceDate(asAccepted.getDate());    
                 // view 레파지 토리에 save
-                progressViewRepository.save(progressView);
+                 progressViewRepository.save(progressView);
                 }
+
 
         }catch (Exception e){
             e.printStackTrace();
@@ -66,15 +68,17 @@ public class ProgressViewViewHandler {
         try {
             if (!asCanceled.validate()) return;
                 // view 객체 조회
+            Optional<ProgressView> progressViewOptional = progressViewRepository.findById(asCanceled.getRequestId());
 
-                List<ProgressView> progressViewList = progressViewRepository.findByRequestId(asCanceled.getRequestId());
-                for(ProgressView progressView : progressViewList){
-                    // view 객체에 이벤트의 eventDirectValue 를 set 함
-                    progressView.setStatus(asCanceled.getStatus());
-                    progressView.setServiceDate(asCanceled.getDate());
+            if( progressViewOptional.isPresent()) {
+                 ProgressView progressView = progressViewOptional.get();
+            // view 객체에 이벤트의 eventDirectValue 를 set 함
+                progressView.setStatus(asCanceled.getStatus());    
+                progressView.setServiceDate(asCanceled.getDate());    
                 // view 레파지 토리에 save
-                progressViewRepository.save(progressView);
+                 progressViewRepository.save(progressView);
                 }
+
 
         }catch (Exception e){
             e.printStackTrace();
@@ -85,15 +89,17 @@ public class ProgressViewViewHandler {
         try {
             if (!repaired.validate()) return;
                 // view 객체 조회
+            Optional<ProgressView> progressViewOptional = progressViewRepository.findById(repaired.getRequestId());
 
-                List<ProgressView> progressViewList = progressViewRepository.findByRequestId(repaired.getRequestId());
-                for(ProgressView progressView : progressViewList){
-                    // view 객체에 이벤트의 eventDirectValue 를 set 함
-                    progressView.setStatus(repaired.getStatus());
-                    progressView.setServiceDate(repaired.getDate());
+            if( progressViewOptional.isPresent()) {
+                 ProgressView progressView = progressViewOptional.get();
+            // view 객체에 이벤트의 eventDirectValue 를 set 함
+                progressView.setStatus(repaired.getStatus());    
+                progressView.setServiceDate(repaired.getDate());    
                 // view 레파지 토리에 save
-                progressViewRepository.save(progressView);
+                 progressViewRepository.save(progressView);
                 }
+
 
         }catch (Exception e){
             e.printStackTrace();
