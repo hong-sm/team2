@@ -20,6 +20,8 @@ public class ProgressView {
         private Date requestDate;
         private String status;
         private Date serviceDate;
+        private String payStatus;
+        private Date payDate;
 
 
 }
