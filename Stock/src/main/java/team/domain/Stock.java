@@ -58,18 +58,16 @@ public class Stock  {
         Stock stock = new Stock();
         repository().save(stock);
 
-        */
-
-        /** Example 2:  finding and process
+        */        
         
-        repository().findById(repaired.get???()).ifPresent(stock->{
-            
-            stock // do something
+        repository().findByRelatedProductId(repaired.getProductId()).ifPresent(stock->{
+            //재고를 하나 줄임
+            stock.setStock(stock.getStock()-1);
             repository().save(stock);
 
 
          });
-        */
+        
 
         
     }

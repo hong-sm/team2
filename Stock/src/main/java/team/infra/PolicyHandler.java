@@ -27,10 +27,7 @@ public class PolicyHandler{
     public void wheneverRepaired_PartRequest(@Payload Repaired repaired){
 
         Repaired event = repaired;
-        System.out.println("\n\n##### listener PartRequest : " + repaired + "\n\n");
-
-
-        
+        System.out.println("\n\n##### listener PartRequest : " + repaired + "\n\n");                
 
         // Sample Logic //
         Stock.partRequest(event);

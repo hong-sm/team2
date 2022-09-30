@@ -106,9 +106,16 @@ public class Service  {
         // it is NOT A GOOD PRACTICE. instead, Event-Policy mapping is recommended.
 
         team.external.Pay pay = new team.external.Pay();
-        // mappings goes here
+        // 지불 서비스 호출
         ServiceApplication.applicationContext.getBean(team.external.PayService.class)
             .pay(pay);
+        
+        //지불 상태로 변경
+        repository().findById(repaired.getId()).ifPresent(service->{
+            
+            service.setStatus("PAID"); 
+            repository().save(service);
+        });
 
     }
     public void accept(){
@@ -125,7 +132,8 @@ public class Service  {
         service.setCustomerName(serviceRequested.getCustomerName());
         service.setDate(serviceRequested.getDate());
         service.setPhoneNumber(serviceRequested.getPhoneNumber());
-        service.setRequestId(serviceRequested.getId());
+        service.setRequestId(serviceRequested.getId());        
+        service.setProductId(serviceRequested.getProductId());
         service.setStatus("REQUESTED");        
         repository().save(service);        
 
@@ -152,21 +160,21 @@ public class Service  {
         asCanceled.publishAfterCommit();
         */
 
-        /** Example 2:  finding and process
-        
-        repository().findById(serviceCancelled.get???()).ifPresent(service->{
+        // 취소 상태로 변경
+        repository().findByRequestId(serviceCancelled.getId()).ifPresent(service->{
             
-            service // do something
+            service.setStatus("CANCELED"); // do something
             repository().save(service);
 
             AsCanceled asCanceled = new AsCanceled(service);
             asCanceled.publishAfterCommit();
 
          });
-        */
+        
 
         
     }
+    
 
 
 }

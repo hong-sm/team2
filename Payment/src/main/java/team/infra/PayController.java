@@ -19,6 +19,4 @@ public class PayController {
     PayRepository payRepository;
 
 
-
-
 }
