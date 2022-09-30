@@ -52,6 +52,7 @@ public class Pay  {
 
 
         Paid paid = new Paid(this);
+        
         paid.publishAfterCommit();
 
     }

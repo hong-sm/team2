@@ -107,6 +107,8 @@ public class Service  {
 
         team.external.Pay pay = new team.external.Pay();
         // 지불 서비스 호출
+        pay.setStatus("PAID");
+        pay.setRequestId(repaired.getRequestId());
         ServiceApplication.applicationContext.getBean(team.external.PayService.class)
             .pay(pay);
         
