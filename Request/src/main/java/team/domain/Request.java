@@ -1,7 +1,6 @@
 package team.domain;
 
 import team.domain.ServiceRequested;
-import team.domain.ServiceCancelled;
 import team.RequestApplication;
 import javax.persistence.*;
 import java.util.List;
@@ -58,7 +57,7 @@ public class Request  {
     
     
     
-    private Boolean isCancel;
+    private String status;
 
     @PostPersist
     public void onPostPersist(){
@@ -67,11 +66,9 @@ public class Request  {
         ServiceRequested serviceRequested = new ServiceRequested(this);
         serviceRequested.publishAfterCommit();
 
-
-
-        ServiceCancelled serviceCancelled = new ServiceCancelled(this);
-        serviceCancelled.publishAfterCommit();
-
+    }
+    @PreRemove
+    public void onPreRemove(){
     }
 
     public static RequestRepository repository(){
@@ -81,6 +78,11 @@ public class Request  {
 
 
 
+    public void serviceCancel(){
+        ServiceCancelled serviceCancelled = new ServiceCancelled(this);
+        serviceCancelled.publishAfterCommit();
+
+    }
 
 
 

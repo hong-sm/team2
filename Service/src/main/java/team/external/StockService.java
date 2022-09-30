@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.util.Date;
 
-@FeignClient(name = "Stock", url = "${api.url.Stock}")
+@FeignClient(name = "Stock", url = "${api.url.Stock}", fallback = StockServiceImpl.class)
 public interface StockService {
     @RequestMapping(method= RequestMethod.GET, path="/stocks/{id}")
     public Stock getStock(@PathVariable("id") Long id);
