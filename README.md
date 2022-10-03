@@ -1,3 +1,5 @@
+![image](https://user-images.githubusercontent.com/43290879/193503556-adf36c7c-8bba-41e7-94eb-4cf85a2ecf22.png)
+
 
 # 2조 : 가전 A/S 센터
 
@@ -9,12 +11,10 @@
   - [서비스 시나리오](#서비스-시나리오)
   - [체크포인트](#체크포인트)
   - [분석/설계](#분석설계)
-  - [구현:](#구현-)
+  - [구현](#구현)
     - [DDD 의 적용](#ddd-의-적용)
-    - [폴리글랏 퍼시스턴스](#폴리글랏-퍼시스턴스)
-    - [폴리글랏 프로그래밍](#폴리글랏-프로그래밍)
-    - [동기식 호출 과 Fallback 처리](#동기식-호출-과-Fallback-처리)
-    - [비동기식 호출 과 Eventual Consistency](#비동기식-호출-과-Eventual-Consistency)
+    - [동기식 호출과 Fallback 처리](#동기식-호출과-Fallback-처리)
+    - [비동기식 호출과 Eventual Consistency](#비동기식-호출과-Eventual-Consistency)
   - [운영](#운영)
     - [CI/CD 설정](#cicd설정)
     - [동기식 호출 / 서킷 브레이킹 / 장애격리](#동기식-호출-서킷-브레이킹-장애격리)
@@ -27,7 +27,7 @@
 기능적 요구사항
 1. 고객이 수리대상 제품 항목을 선택하여 AS요청을 한다.
 1. AS요청이 접수되면 서비스목록(Service List)에 저장된다.
-1. 고객은 AS요청을 취소할  있다.
+1. 고객은 AS요청을 취소할 수 있다.
 1. AS요청이 취소되면 서비스목록(Service List)에서 요청취소처리(상태변경)된다.
 1. 엔지니어가 AS수락(accept)하면 AS를 진행한다.
 1. 엔지니어가 수리 완료하면 부품재고(Stock)을 감소 및 결재연계를 수행한다.
@@ -35,7 +35,6 @@
 
 비기능적 요구사항
 1. 엔지니어는 수리 부품 재고가 없으면 AS요청을 accept 할 수 없다.
-
 
 장애격리
 1. A/S처리가 진행되지 않더라도 A/S접수는 365일 24시간 받을 수 있어야 한다 Async (event-driven), Eventual Consistency
@@ -46,7 +45,6 @@
 # 체크포인트
 
 - 분석 설계
-
 
   - 이벤트스토밍: 
     - 스티커 색상별 객체의 의미를 제대로 이해하여 헥사고날 아키텍처와의 연계 설계에 적절히 반영하고 있는가?
@@ -105,93 +103,79 @@
 
 
 ## AS-IS 조직 (Horizontally-Aligned)
-  ![image](https://user-images.githubusercontent.com/487999/79684144-2a893200-826a-11ea-9a01-79927d3a0107.png)
+  ![image](https://user-images.githubusercontent.com/43290879/193505101-dd90cef0-8822-4f78-94c7-21732fde0441.png)
 
 ## TO-BE 조직 (Vertically-Aligned)
-  ![image](https://user-images.githubusercontent.com/487999/79684159-3543c700-826a-11ea-8d5f-a3fc0c4cad87.png)
+  ![image](https://user-images.githubusercontent.com/43290879/193504611-f359d25a-3aa5-454a-91ab-3217cd03d1a9.png)
 
 
 ## Event Storming 결과
-* MSAEz 로 모델링한 이벤트스토밍 결과:  http://msaez.io/#/storming/nZJ2QhwVc4NlVJPbtTkZ8x9jclF2/every/a77281d704710b0c2e6a823b6e6d973a/-M5AV2z--su_i4BfQfeF
+* MSAEz 로 모델링한 이벤트스토밍 결과:  https://labs.msaez.io/#/storming/0m7bkHadOlOND3T69AxivsAYOek1/753ebcb08791bf7fb3ece01238af2511
 
 
 ### 이벤트 도출
-![image](https://user-images.githubusercontent.com/487999/79683604-47bc0180-8266-11ea-9212-7e88c9bf9911.png)
+![image](https://user-images.githubusercontent.com/43290879/193505243-358f2a04-c3bc-4004-b0b9-1b569ec3e941.png)
 
-### 부적격 이벤트 탈락
-![image](https://user-images.githubusercontent.com/487999/79683612-4b4f8880-8266-11ea-9519-7e084524a462.png)
+    - 가전 A/S 센터 시스템을 개발하기 위한 이벤트들을 도출함
 
-    - 과정중 도출된 잘못된 도메인 이벤트들을 걸러내는 작업을 수행함
-        - 주문시>메뉴카테고리선택됨, 주문시>메뉴검색됨 :  UI 의 이벤트이지, 업무적인 의미의 이벤트가 아니라서 제외
+### 이벤트 시간순 정렬
+![image](https://user-images.githubusercontent.com/43290879/193505276-b45f2929-9f40-4fc1-9ed2-6c364995c375.png)
 
-### 액터, 커맨드 부착하여 읽기 좋게
-![image](https://user-images.githubusercontent.com/487999/79683614-4ee30f80-8266-11ea-9a50-68cdff2dcc46.png)
+    - 도출된 이벤트를 시간순으로 정렬
 
-### 어그리게잇으로 묶기
-![image](https://user-images.githubusercontent.com/487999/79683618-52769680-8266-11ea-9c21-48d6812444ba.png)
+### 불필요 이벤트 정리
+![image](https://user-images.githubusercontent.com/43290879/193505652-dc1088ec-4fee-47ab-a91d-0fbc06786c91.png)
 
-    - app의 Order, store 의 주문처리, 결제의 결제이력은 그와 연결된 command 와 event 들에 의하여 트랜잭션이 유지되어야 하는 단위로 그들 끼리 묶어줌
+    - 잘못 도출되거나 불필요한 이벤트를 정리
+        - 부품요청됨 : 부품 요청은 엔지니어가 재고를 추가하는 것으로 정리
+        - 엔지니어 배정됨 : 엔지니어는 항상 배정되는 것으로 업무 정의
 
 ### 바운디드 컨텍스트로 묶기
+![image](https://user-images.githubusercontent.com/43290879/193505799-3c19483c-979d-452a-84bb-d05a80af0fbd.png)
 
-![image](https://user-images.githubusercontent.com/487999/79683625-560a1d80-8266-11ea-9790-40d68a36d95d.png)
-
+    - 유사한 종류의 이벤트를 바운디드 컨텍스트로 묶기
+        - 요청 : 고객이 서비스를 요청하거나 취소
+        - 서비스 : 요청받은 서비스를 처리
+        - 결제 : 서비스 처리후 결제
+        - 재고 : 서비스 처리를 위한 재고 관리
+        
     - 도메인 서열 분리 
-        - Core Domain:  app(front), store : 없어서는 안될 핵심 서비스이며, 연견 Up-time SLA 수준을 99.999% 목표, 배포주기는 app 의 경우 1주일 1회 미만, store 의 경우 1개월 1회 미만
-        - Supporting Domain:   marketing, customer : 경쟁력을 내기위한 서비스이며, SLA 수준은 연간 60% 이상 uptime 목표, 배포주기는 각 팀의 자율이나 표준 스프린트 주기가 1주일 이므로 1주일 1회 이상을 기준으로 함.
-        - General Domain:   pay : 결제서비스로 3rd Party 외부 서비스를 사용하는 것이 경쟁력이 높음 (핑크색으로 이후 전환할 예정)
+        - Core Domain : 요청, 서비스
+        - Supporting Domain : 재고
+        - General Domain : 결제
 
-### 폴리시 부착 (괄호는 수행주체, 폴리시 부착을 둘째단계에서 해놔도 상관 없음. 전체 연계가 초기에 드러남)
+### 완성된 모델
 
-![image](https://user-images.githubusercontent.com/487999/79683633-5aced180-8266-11ea-8f42-c769eb88dfb1.png)
-
-### 폴리시의 이동과 컨텍스트 매핑 (점선은 Pub/Sub, 실선은 Req/Resp)
-
-![image](https://user-images.githubusercontent.com/487999/79683641-5f938580-8266-11ea-9fdb-4e80ff6642fe.png)
-
-### 완성된 1차 모형
-
-![image](https://user-images.githubusercontent.com/487999/79683646-63bfa300-8266-11ea-9bc5-c0b650507ac8.png)
+![image](https://user-images.githubusercontent.com/43290879/193506224-558b68b8-0275-4f04-ae83-218f5388def7.png)
 
     - View Model 추가
 
-### 1차 완성본에 대한 기능적/비기능적 요구사항을 커버하는지 검증
+### 요구사항을 커버하는지 검증
 
-![image](https://user-images.githubusercontent.com/487999/79684167-3ecd2f00-826a-11ea-806a-957362d197e3.png)
+![image](https://user-images.githubusercontent.com/43290879/193506937-1d24106c-903d-4050-b0d9-f0fcaa7554fe.png)
 
-    - 고객이 메뉴를 선택하여 주문한다 (ok)
-    - 고객이 결제한다 (ok)
-    - 주문이 되면 주문 내역이 입점상점주인에게 전달된다 (ok)
-    - 상점주인이 확인하여 요리해서 배달 출발한다 (ok)
+    - 1) 고객이 A/S를 요청하면 서비스센터에 접수된다 (ok)
+    - 2) 엔지니어가 재고를 확인하여 재고가 있는 경우 서비스를 받아들인다 (ok)
+    - 3) A/S가 완료되면 완료상태로 변경하고 사용한 재고는 차감하고 고객은 결제를 하여 서비스를 완료한다. (ok)    
 
-![image](https://user-images.githubusercontent.com/487999/79684170-47256a00-826a-11ea-9777-e16fafff519a.png)
-    - 고객이 주문을 취소할 수 있다 (ok)
-    - 주문이 취소되면 배달이 취소된다 (ok)
-    - 고객이 주문상태를 중간중간 조회한다 (View-green sticker 의 추가로 ok) 
-    - 주문상태가 바뀔 때 마다 카톡으로 알림을 보낸다 (?)
+![image](https://user-images.githubusercontent.com/43290879/193507142-aee14cec-bf07-4153-8ffa-4b3bba9e144a.png)
 
-
-### 모델 수정
-
-![image](https://user-images.githubusercontent.com/487999/79684176-4e4c7800-826a-11ea-8deb-b7b053e5d7c6.png)
-    
-    - 수정된 모델은 모든 요구사항을 커버함.
+    - 고객이 A/S 신청을 취소할 수 있다 (ok)
+    - 취소가 되면 신청 및 A/S상태를 취소로 변경하고 이후 이후 A/S 작업은 중단된다 (ok)
+    - 고객이 A/S 상태를 중간중간 조회한다 (View-green sticker 의 추가로 ok)     
 
 ### 비기능 요구사항에 대한 검증
 
-![image](https://user-images.githubusercontent.com/487999/79684184-5c9a9400-826a-11ea-8d87-2ed1e44f4562.png)
-
     - 마이크로 서비스를 넘나드는 시나리오에 대한 트랜잭션 처리
-        - 고객 주문시 결제처리:  결제가 완료되지 않은 주문은 절대 받지 않는다는 경영자의 오랜 신념(?) 에 따라, ACID 트랜잭션 적용. 주문와료시 결제처리에 대해서는 Request-Response 방식 처리
-        - 결제 완료시 점주연결 및 배송처리:  App(front) 에서 Store 마이크로서비스로 주문요청이 전달되는 과정에 있어서 Store 마이크로 서비스가 별도의 배포주기를 가지기 때문에 Eventual Consistency 방식으로 트랜잭션 처리함.
-        - 나머지 모든 inter-microservice 트랜잭션: 주문상태, 배달상태 등 모든 이벤트에 대해 카톡을 처리하는 등, 데이터 일관성의 시점이 크리티컬하지 않은 모든 경우가 대부분이라 판단, Eventual Consistency 를 기본으로 채택함.
-
+        - A/S 완료시 결제처리:  최종 수리된 물건을 받기 위해서는 결제를 완료해야 하기 때문에 Request-Response 방식 처리
+        - A/S 승인시 재고 확인: A/S 승인을 하기 위해서는 수리를 위한 부품의 재고가 있는지 확인이 되어야 하기 때문에 Request-Response 방식으로 처리
+        - 나머지 모든 inter-microservice 트랜잭션: A/S접수, 재고차감 등 모든 이벤트에 대해 데이터 일관성의 시점이 크리티컬하지 않은 모든 경우가 대부분이라 판단, Eventual Consistency 를 기본으로 채택함.
 
 
 
 ## 헥사고날 아키텍처 다이어그램 도출
     
-![image](https://user-images.githubusercontent.com/487999/79684772-eba9ab00-826e-11ea-9405-17e2bf39ec76.png)
+![image](https://user-images.githubusercontent.com/43290879/193509676-61ae917a-2463-48d6-b196-d636fe22ebda.png)
 
 
     - Chris Richardson, MSA Patterns 참고하여 Inbound adaptor와 Outbound adaptor를 구분함
@@ -199,311 +183,378 @@
     - 서브 도메인과 바운디드 컨텍스트의 분리:  각 팀의 KPI 별로 아래와 같이 관심 구현 스토리를 나눠가짐
 
 
-# 구현:
+# 구현
 
-분석/설계 단계에서 도출된 헥사고날 아키텍처에 따라, 각 BC별로 대변되는 마이크로 서비스들을 스프링부트와 파이선으로 구현하였다. 구현한 각 서비스를 로컬에서 실행하는 방법은 아래와 같다 (각자의 포트넘버는 8081 ~ 808n 이다)
+분석/설계 단계에서 도출된 헥사고날 아키텍처에 따라, 각 BC별로 대변되는 마이크로 서비스들을 스프링부트로 구현하였다. 구현한 각 서비스를 로컬에서 실행하는 방법은 아래와 같다 (각자의 포트넘버는 8081 ~ 808n 이다)
 
 ```
-cd app
+cd Request
 mvn spring-boot:run
 
-cd pay
+cd Service
 mvn spring-boot:run 
 
-cd store
+cd Stock
 mvn spring-boot:run  
 
-cd customer
-python policy-handler.py 
+cd Payment
+mvn spring-boot:run  
+
+cd view
+mvn spring-boot:run  
 ```
 
 ## DDD 의 적용
 
-- 각 서비스내에 도출된 핵심 Aggregate Root 객체를 Entity 로 선언하였다: (예시는 pay 마이크로 서비스). 이때 가능한 현업에서 사용하는 언어 (유비쿼터스 랭귀지)를 그대로 사용하려고 노력했다. 하지만, 일부 구현에 있어서 영문이 아닌 경우는 실행이 불가능한 경우가 있기 때문에 계속 사용할 방법은 아닌것 같다. (Maven pom.xml, Kafka의 topic id, FeignClient 의 서비스 id 등은 한글로 식별자를 사용하는 경우 오류가 발생하는 것을 확인하였다)
+- 각 서비스내에 도출된 핵심 Aggregate Root 객체를 Entity 로 선언하였다: (예시는 service 마이크로 서비스). 이때 가능한 현업에서 사용하는 언어 (유비쿼터스 랭귀지)를 그대로 사용. Getter/Setter는 lombok에 의해서 자동으로 생성
 
 ```
-package fooddelivery;
+package team.domain;
 
+import team.domain.AsCanceled;
+import team.ServiceApplication;
 import javax.persistence.*;
-import org.springframework.beans.BeanUtils;
 import java.util.List;
+import lombok.Data;
+import java.util.Date;
 
 @Entity
-@Table(name="결제이력_table")
-public class 결제이력 {
+@Table(name="Service_table")
+@Data
 
+public class Service  {    
     @Id
-    @GeneratedValue(strategy=GenerationType.AUTO)
-    private Long id;
-    private String orderId;
-    private Double 금액;
-
-    public Long getId() {
-        return id;
+    @GeneratedValue(strategy=GenerationType.AUTO)    
+    private Long id; 
+    private String status;
+    private Long requestId;
+    private Date date;
+    private String customerName;
+    private String phoneNumber;
+    private Integer price;
+    private String symtom;
+    private String engineerName;
+    private String productId;
+    
+    @PostPersist
+    public void onPostPersist(){
+        AsCanceled asCanceled = new AsCanceled(this);
+        asCanceled.publishAfterCommit();        
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public static ServiceRepository repository(){
+        ServiceRepository serviceRepository = ServiceApplication.applicationContext.getBean(ServiceRepository.class);
+        return serviceRepository;
     }
-    public String getOrderId() {
-        return orderId;
+    
+    public void productRepair(){
+        Repaired repaired = new Repaired(this);
+        repaired.publishAfterCommit();
+
+        team.external.Pay pay = new team.external.Pay();
+        // 지불 서비스 호출
+        pay.setStatus("PAID");
+        pay.setRequestId(repaired.getRequestId());
+        ServiceApplication.applicationContext.getBean(team.external.PayService.class)
+            .pay(pay);
+        
+        //지불 상태로 변경
+        repository().findById(repaired.getId()).ifPresent(service->{
+            
+            service.setStatus("PAID"); 
+            service.setDate(new Date());
+            repository().save(service);
+        });
+
+    }
+    public void accept(){
+        AsAccepted asAccepted = new AsAccepted(this);
+        asAccepted.publishAfterCommit();
+
     }
 
-    public void setOrderId(String orderId) {
-        this.orderId = orderId;
+    public static void loadToServiceList(ServiceRequested serviceRequested){
+        
+        //AS요청으로 부터 받은 정보 세팅
+        Service service = new Service();
+        service.setCustomerName(serviceRequested.getCustomerName());
+        service.setDate(serviceRequested.getDate());
+        service.setPhoneNumber(serviceRequested.getPhoneNumber());
+        service.setRequestId(serviceRequested.getId());        
+        service.setProductId(serviceRequested.getProductId());
+        service.setDate(new Date());
+        service.setStatus("REQUESTED");        
+        repository().save(service);        
     }
-    public Double get금액() {
-        return 금액;
-    }
+    public static void cancelAs(ServiceCancelled serviceCancelled){
+        // 취소 상태로 변경
+        repository().findByRequestId(serviceCancelled.getId()).ifPresent(service->{
+            
+            service.setStatus("CANCELED"); // do something
+            service.setDate(new Date());
+            repository().save(service);
 
-    public void set금액(Double 금액) {
-        this.금액 = 금액;
+            AsCanceled asCanceled = new AsCanceled(service);
+            asCanceled.publishAfterCommit();
+         });      
     }
-
 }
 
 ```
 - Entity Pattern 과 Repository Pattern 을 적용하여 JPA 를 통하여 다양한 데이터소스 유형 (RDB or NoSQL) 에 대한 별도의 처리가 없도록 데이터 접근 어댑터를 자동 생성하기 위하여 Spring Data REST 의 RestRepository 를 적용하였다
 ```
-package fooddelivery;
+package team.domain;
 
+import team.domain.*;
+import java.util.Optional;
 import org.springframework.data.repository.PagingAndSortingRepository;
+import org.springframework.data.rest.core.annotation.RepositoryRestResource;
 
-public interface 결제이력Repository extends PagingAndSortingRepository<결제이력, Long>{
+@RepositoryRestResource(collectionResourceRel="services", path="services")
+public interface ServiceRepository extends PagingAndSortingRepository<team.domain.Service, Long>{
+    Optional<team.domain.Service> findByRequestId(long requestId);
 }
 ```
 - 적용 후 REST API 의 테스트
 ```
-# app 서비스의 주문처리
-http localhost:8081/orders item="통닭"
-
-# store 서비스의 배달처리
-http localhost:8083/주문처리s orderId=1
-
-# 주문 상태 확인
-http localhost:8081/orders/1
+# request 서비스의 A/S 신청
+http :8081/requests symtom="화면이 안나와요" productId="1" customerName="Hong"
+```
+![image](https://user-images.githubusercontent.com/43290879/193511878-963a52ec-cbbd-434b-b75c-a217b1729f9b.png)
 
 ```
+# service 서비스의 엔지니어링 A/S승인
+http PUT :8082/services/1/accept
+```
+![image](https://user-images.githubusercontent.com/43290879/193512061-cf2cd9b8-7947-4545-9223-b561f0d91ed4.png)
+```
+# service 상태 확인
+http :8082/services/1
+```
+![image](https://user-images.githubusercontent.com/43290879/193512203-0103d8fe-2dbd-4a2f-b51b-939b1a3ac945.png)
+```
+# stock 서비스의 재고 추가
+```
+![image](https://user-images.githubusercontent.com/43290879/193511975-ed292913-a802-4fb0-ae27-fad5e9c5fc75.png)
 
+## 동기식 호출과 Fallback 처리
 
-## 폴리글랏 퍼시스턴스
+분석단계에서의 조건 중 하나로 A/S승인(service)->재고확인(stock), 수리완료(service)->결재(pay)간의 호출은 동기식 일관성을 유지하는 트랜잭션으로 처리하기로 하였다. 호출 프로토콜은 이미 앞서 Rest Repository 에 의해 노출되어있는 REST 서비스를 FeignClient 를 이용하여 호출하도록 한다. 
 
-앱프런트 (app) 는 서비스 특성상 많은 사용자의 유입과 상품 정보의 다양한 콘텐츠를 저장해야 하는 특징으로 인해 RDB 보다는 Document DB / NoSQL 계열의 데이터베이스인 Mongo DB 를 사용하기로 하였다. 이를 위해 order 의 선언에는 @Entity 가 아닌 @Document 로 마킹되었으며, 별다른 작업없이 기존의 Entity Pattern 과 Repository Pattern 적용과 데이터베이스 제품의 설정 (application.yml) 만으로 MongoDB 에 부착시켰다
+- 재고확인을 호출하기 위하여 Stub과 (FeignClient) 를 이용하여 Service 대행 인터페이스 (Proxy) 를 구현 
 
 ```
-# Order.java
+package team.external;
 
-package fooddelivery;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 
-@Document
-public class Order {
-
-    private String id; // mongo db 적용시엔 id 는 고정값으로 key가 자동 발급되는 필드기 때문에 @Id 나 @GeneratedValue 를 주지 않아도 된다.
-    private String item;
-    private Integer 수량;
-
-}
-
-
-# 주문Repository.java
-package fooddelivery;
-
-public interface 주문Repository extends JpaRepository<Order, UUID>{
-}
-
-# application.yml
-
-  data:
-    mongodb:
-      host: mongodb.default.svc.cluster.local
-    database: mongo-example
-
-```
-
-## 폴리글랏 프로그래밍
-
-고객관리 서비스(customer)의 시나리오인 주문상태, 배달상태 변경에 따라 고객에게 카톡메시지 보내는 기능의 구현 파트는 해당 팀이 python 을 이용하여 구현하기로 하였다. 해당 파이썬 구현체는 각 이벤트를 수신하여 처리하는 Kafka consumer 로 구현되었고 코드는 다음과 같다:
-```
-from flask import Flask
-from redis import Redis, RedisError
-from kafka import KafkaConsumer
-import os
-import socket
-
-
-# To consume latest messages and auto-commit offsets
-consumer = KafkaConsumer('fooddelivery',
-                         group_id='',
-                         bootstrap_servers=['localhost:9092'])
-for message in consumer:
-    print ("%s:%d:%d: key=%s value=%s" % (message.topic, message.partition,
-                                          message.offset, message.key,
-                                          message.value))
-
-    # 카톡호출 API
-```
-
-파이선 애플리케이션을 컴파일하고 실행하기 위한 도커파일은 아래와 같다 (운영단계에서 할일인가? 아니다 여기 까지가 개발자가 할일이다. Immutable Image):
-```
-FROM python:2.7-slim
-WORKDIR /app
-ADD . /app
-RUN pip install --trusted-host pypi.python.org -r requirements.txt
-ENV NAME World
-EXPOSE 8090
-CMD ["python", "policy-handler.py"]
-```
-
-
-## 동기식 호출 과 Fallback 처리
-
-분석단계에서의 조건 중 하나로 주문(app)->결제(pay) 간의 호출은 동기식 일관성을 유지하는 트랜잭션으로 처리하기로 하였다. 호출 프로토콜은 이미 앞서 Rest Repository 에 의해 노출되어있는 REST 서비스를 FeignClient 를 이용하여 호출하도록 한다. 
-
-- 결제서비스를 호출하기 위하여 Stub과 (FeignClient) 를 이용하여 Service 대행 인터페이스 (Proxy) 를 구현 
-
-```
-# (app) 결제이력Service.java
-
-package fooddelivery.external;
-
-@FeignClient(name="pay", url="http://localhost:8082")//, fallback = 결제이력ServiceFallback.class)
-public interface 결제이력Service {
-
-    @RequestMapping(method= RequestMethod.POST, path="/결제이력s")
-    public void 결제(@RequestBody 결제이력 pay);
-
+@FeignClient(name = "Stock", url = "${api.url.Stock}", fallback = StockServiceImpl.class)
+public interface StockService {
+    @RequestMapping(method= RequestMethod.GET, path="/stocks/product/{id}")
+    public Stock getStock(@PathVariable("id") String id);    
 }
 ```
 
-- 주문을 받은 직후(@PostPersist) 결제를 요청하도록 처리
+- 엔지니어가 A/S승인을 할 때 재고개수를 확인하도록 처리
 ```
-# Order.java (Entity)
+# ServiceController.java (Controller)
 
-    @PostPersist
-    public void onPostPersist(){
+    @RequestMapping(value = "services/{id}/accept",
+        method = RequestMethod.PUT,
+        produces = "application/json;charset=UTF-8")
+    public Service accept(@PathVariable(value = "id") Long id, HttpServletRequest request, HttpServletResponse response) throws Exception {
+            System.out.println("##### /service/accept  called #####");
+            
+            Optional<Service> optionalService = serviceRepository.findById(id);
+            
+            optionalService.orElseThrow(()-> new Exception("No Entity Found"));                        
+            
+            Service service = optionalService.get();
 
-        fooddelivery.external.결제이력 pay = new fooddelivery.external.결제이력();
-        pay.setOrderId(getOrderId());
-        
-        Application.applicationContext.getBean(fooddelivery.external.결제이력Service.class)
-                .결제(pay);
+            team.external.Stock stock =
+            ServiceApplication.applicationContext.getBean(team.external.StockService.class)
+            .getStock(service.getProductId());
+
+            if(stock == null || stock.getStock() == null || stock.getStock() < 1) {
+                
+                service.setStatus("OUTOFSTOCK");
+                serviceRepository.save(service);
+                return service;
+            }
+            service.accept();
+            service.setStatus("ACCEPTED");
+            service.setPrice(stock.getUnitPrice());
+            serviceRepository.save(service);
+            return service;
+            
     }
 ```
 
-- 동기식 호출에서는 호출 시간에 따른 타임 커플링이 발생하며, 결제 시스템이 장애가 나면 주문도 못받는다는 것을 확인:
+- 결제서비스를 호출하기 위하여 Stub과 (FeignClient) 를 이용하여 Service 대행 인터페이스 (Proxy) 를 구현
+
+```
+package team.external;
+
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+
+import java.util.Date;
+
+@FeignClient(name = "Payment", url = "${api.url.Payment}", fallback = PayServiceImpl.class)
+public interface PayService {
+    @RequestMapping(method= RequestMethod.POST, path="/pays")
+    public void pay(@RequestBody Pay pay);
+}
+```
+
+- 엔지니어가 수리를 완료한 후 결제를 수행하도록 처리
+```
+# ServiceController.java (Controller)
+
+    public void productRepair(){
+        Repaired repaired = new Repaired(this);
+        repaired.publishAfterCommit();
+
+        team.external.Pay pay = new team.external.Pay();
+        // 지불 서비스 호출
+        pay.setStatus("PAID");
+        pay.setRequestId(repaired.getRequestId());
+        ServiceApplication.applicationContext.getBean(team.external.PayService.class)
+            .pay(pay);
+        
+        //지불 상태로 변경
+        repository().findById(repaired.getId()).ifPresent(service->{
+            
+            service.setStatus("PAID"); 
+            service.setDate(new Date());
+            repository().save(service);
+        });
+
+    }
+```
+- fallback 구현
+```
+package team.external;
+
+import org.springframework.stereotype.Service;
+
+@Service
+public class PayServiceImpl implements PayService {
+
+
+    /**
+     * Fallback
+     */
+    public Pay getPay(Long id) {
+        Pay pay = new Pay();
+        System.out.println("Pay Fallback Call!");
+        return pay;
+    }
+
+    @Override
+    public void pay(Pay pay) {
+        // TODO Auto-generated method stub
+        
+    }
+}
+```
+
+- 동기식 호출에서는 호출 시간에 따른 타임 커플링이 발생하며, A/S 승인처리시 재고서비스가 내려가 있는 경우 정상 처리 불가 확 :
 
 
 ```
-# 결제 (pay) 서비스를 잠시 내려놓음 (ctrl+c)
+#재고 (stock) 서비스를 잠시 내려놓음 (ctrl+c)
 
-#주문처리
-http localhost:8081/orders item=통닭 storeId=1   #Fail
-http localhost:8081/orders item=피자 storeId=2   #Fail
+#A/S승인 처리
+http PUT :8082/services/1/accept   #재고없음으로 Fail
 
 #결제서비스 재기동
-cd 결제
+cd Stock
 mvn spring-boot:run
 
-#주문처리
-http localhost:8081/orders item=통닭 storeId=1   #Success
-http localhost:8081/orders item=피자 storeId=2   #Success
+#A/S승인 처리
+http PUT :8082/services/1/accept   #Success
 ```
-
-- 또한 과도한 요청시에 서비스 장애가 도미노 처럼 벌어질 수 있다. (서킷브레이커, 폴백 처리는 운영단계에서 설명한다.)
-
-
-
 
 ## 비동기식 호출 / 시간적 디커플링 / 장애격리 / 최종 (Eventual) 일관성 테스트
 
-
-결제가 이루어진 후에 상점시스템으로 이를 알려주는 행위는 동기식이 아니라 비 동기식으로 처리하여 상점 시스템의 처리를 위하여 결제주문이 블로킹 되지 않아도록 처리한다.
+고객이 A/S 신청을 한 후 서비스 센터에 A/S 신청접수가 처리되는 부분은 비동기식으로 처리하여 A/S 신청이 블로킹 되지 않도록 처리한다. 
  
-- 이를 위하여 결제이력에 기록을 남긴 후에 곧바로 결제승인이 되었다는 도메인 이벤트를 카프카로 송출한다(Publish)
+- 이를 위하여 A/S신청(request)에 기록을 남긴 후에 곧바로 서비스측에 도메인 이벤트를 카프카로 송출한다(Publish)
  
 ```
-package fooddelivery;
+package team.domain;
 
 @Entity
-@Table(name="결제이력_table")
-public class 결제이력 {
+@Table(name="Request_table")
+@Data
+
+public class Request  {
 
  ...
-    @PrePersist
-    public void onPrePersist(){
-        결제승인됨 결제승인됨 = new 결제승인됨();
-        BeanUtils.copyProperties(this, 결제승인됨);
-        결제승인됨.publish();
+    @PostPersist
+    public void onPostPersist(){
+        ServiceRequested serviceRequested = new ServiceRequested(this);
+        serviceRequested.publishAfterCommit();
     }
-
 }
 ```
-- 상점 서비스에서는 결제승인 이벤트에 대해서 이를 수신하여 자신의 정책을 처리하도록 PolicyHandler 를 구현한다:
+- Service 서비스에서는 A/S접수시 이를 수신하여 자신의 정책을 처리하도록 PolicyHandler 를 구현한다:
 
 ```
-package fooddelivery;
+package team.infra;
 
 ...
 
 @Service
+@Transactional
 public class PolicyHandler{
 
-    @StreamListener(KafkaProcessor.INPUT)
-    public void whenever결제승인됨_주문정보받음(@Payload 결제승인됨 결제승인됨){
-
-        if(결제승인됨.isMe()){
-            System.out.println("##### listener 주문정보받음 : " + 결제승인됨.toJson());
-            // 주문 정보를 받았으니, 요리를 슬슬 시작해야지..
-            
-        }
+...
+    @StreamListener(value=KafkaProcessor.INPUT, condition="headers['type']=='ServiceRequested'")
+    public void wheneverServiceRequested_LoadToServiceList(@Payload ServiceRequested serviceRequested){
+        ServiceRequested event = serviceRequested;
+        System.out.println("\n\n##### listener LoadToServiceList : " + serviceRequested + "\n\n");  
+        team.domain.Service.loadToServiceList(event);    
     }
-
 }
 
 ```
-실제 구현을 하자면, 카톡 등으로 점주는 노티를 받고, 요리를 마친후, 주문 상태를 UI에 입력할테니, 우선 주문정보를 DB에 받아놓은 후, 이후 처리는 해당 Aggregate 내에서 하면 되겠다.:
+Service에서는 loadToServiceList의 이벤트를 다음과 같이 처리하여 Service Agggregate에 A/S신청 정보가 저장되도록 처리하였다:
   
 ```
-  @Autowired 주문관리Repository 주문관리Repository;
-  
-  @StreamListener(KafkaProcessor.INPUT)
-  public void whenever결제승인됨_주문정보받음(@Payload 결제승인됨 결제승인됨){
-
-      if(결제승인됨.isMe()){
-          카톡전송(" 주문이 왔어요! : " + 결제승인됨.toString(), 주문.getStoreId());
-
-          주문관리 주문 = new 주문관리();
-          주문.setId(결제승인됨.getOrderId());
-          주문관리Repository.save(주문);
-      }
-  }
+package team.domain;
+...
+@Entity
+@Table(name="Service_table")
+@Data
+...
+public class Service  {
+  public static void loadToServiceList(ServiceRequested serviceRequested){
+        //AS요청으로 부터 받은 정보 세팅
+        Service service = new Service();
+        service.setCustomerName(serviceRequested.getCustomerName());
+        service.setDate(serviceRequested.getDate());
+        service.setPhoneNumber(serviceRequested.getPhoneNumber());
+        service.setRequestId(serviceRequested.getId());        
+        service.setProductId(serviceRequested.getProductId());
+        service.setDate(new Date());
+        service.setStatus("REQUESTED");        
+        repository().save(service);    
+    }
+}
 
 ```
-
-상점 시스템은 주문/결제와 완전히 분리되어있으며, 이벤트 수신에 따라 처리되기 때문에, 상점시스템이 유지보수로 인해 잠시 내려간 상태라도 주문을 받는데 문제가 없다:
-```
-# 상점 서비스 (store) 를 잠시 내려놓음 (ctrl+c)
-
-#주문처리
-http localhost:8081/orders item=통닭 storeId=1   #Success
-http localhost:8081/orders item=피자 storeId=2   #Success
-
-#주문상태 확인
-http localhost:8080/orders     # 주문상태 안바뀜 확인
-
-#상점 서비스 기동
-cd 상점
-mvn spring-boot:run
-
-#주문상태 확인
-http localhost:8080/orders     # 모든 주문의 상태가 "배송됨"으로 확인
-```
-
 
 # 운영
 
 ## CI/CD 설정
-
 
 각 구현체들은 각자의 source repository 에 구성되었고, 사용한 CI/CD 플랫폼은 GCP를 사용하였으며, pipeline build script 는 각 프로젝트 폴더 이하에 cloudbuild.yml 에 포함되었다.
 
