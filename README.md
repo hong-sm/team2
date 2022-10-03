@@ -316,25 +316,34 @@ public interface ServiceRepository extends PagingAndSortingRepository<team.domai
 ```
 - 적용 후 REST API 의 테스트
 ```
-# request 서비스의 A/S 신청
+# request 서비스의 A/S 신청 : 고장난 제품ID, 고장 증상 고객정보를 입력하여 A/S요청
 http :8081/requests symtom="화면이 안나와요" productId="1" customerName="Hong"
 ```
-![image](https://user-images.githubusercontent.com/43290879/193511878-963a52ec-cbbd-434b-b75c-a217b1729f9b.png)
+![image](https://user-images.githubusercontent.com/43290879/193704949-fcd70df2-a9a1-4635-8623-40114c90f795.png)
 
 ```
-# service 서비스의 엔지니어링 A/S승인
-http PUT :8082/services/1/accept
-```
-![image](https://user-images.githubusercontent.com/43290879/193512061-cf2cd9b8-7947-4545-9223-b561f0d91ed4.png)
-```
-# service 상태 확인
+# service 상태 확인 : 서비스 센터로 접수된 정보 확인
 http :8082/services/1
 ```
-![image](https://user-images.githubusercontent.com/43290879/193512203-0103d8fe-2dbd-4a2f-b51b-939b1a3ac945.png)
+![image](https://user-images.githubusercontent.com/43290879/193705028-4e85ae6d-abd4-4d5b-8133-b44d8822dab5.png)
+
 ```
-# stock 서비스의 재고 추가
+# stock 서비스의 재고 추가 : 수리하기 위한 부품 추가
+http :8083/stocks relatedProductId="1" stock=5 unitPrice=5000
 ```
-![image](https://user-images.githubusercontent.com/43290879/193511975-ed292913-a802-4fb0-ae27-fad5e9c5fc75.png)
+![image](https://user-images.githubusercontent.com/43290879/193705244-bc40a7ec-6143-4061-8b95-12fa2ebce716.png)
+
+```
+# service 서비스의 엔지니어 A/S승인 : 엔지니어가 A/S 접수 승인
+http PUT :8082/services/1/accept
+```
+![image](https://user-images.githubusercontent.com/43290879/193705386-d31888d1-2196-4d80-864d-3f4396be7a4b.png)
+
+```
+# service 서비스의 엔지니어 수리 완료 및 결제 : 엔지니어가 최종 수리 완료 및 고객 결제 처리
+http PUT :8082/services/1/product-repair
+```
+![image](https://user-images.githubusercontent.com/43290879/193705763-774d7ffb-4796-4c1d-ada5-40b2bf7abaa2.png)
 
 ## 동기식 호출과 Fallback 처리
 
