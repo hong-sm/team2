@@ -151,7 +151,7 @@
 
 ### 요구사항을 커버하는지 검증
 
-![image](https://user-images.githubusercontent.com/43290879/193506937-1d24106c-903d-4050-b0d9-f0fcaa7554fe.png)
+![image](https://user-images.githubusercontent.com/43290879/193517960-23e1c0b8-de4b-4cca-a15e-add9da5578ae.png)
 
     - 1) 고객이 A/S를 요청하면 서비스센터에 접수된다 (ok)
     - 2) 엔지니어가 재고를 확인하여 재고가 있는 경우 서비스를 받아들인다 (ok)
