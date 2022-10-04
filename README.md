@@ -460,27 +460,21 @@ package team.external;
 import org.springframework.stereotype.Service;
 
 @Service
-public class PayServiceImpl implements PayService {
+public class StockServiceImpl implements StockService {
 
 
     /**
      * Fallback
      */
-    public Pay getPay(Long id) {
-        Pay pay = new Pay();
-        System.out.println("Pay Fallback Call!");
-        return pay;
-    }
-
-    @Override
-    public void pay(Pay pay) {
-        // TODO Auto-generated method stub
-        
+    public Stock getStock(String id) {
+        Stock stock = new Stock();
+        System.out.println("CallBack Stock");
+        return stock;
     }
 }
 ```
 
-- 동기식 호출에서는 호출 시간에 따른 타임 커플링이 발생하며, A/S 승인처리시 재고서비스가 내려가 있는 경우 정상 처리 불가 확 :
+- 동기식 호출에서는 호출 시간에 따른 타임 커플링이 발생하며, A/S 승인처리시 재고서비스가 내려가 있는 경우 정상 처리 불가 확인 :
 
 
 ```
@@ -496,6 +490,9 @@ mvn spring-boot:run
 #A/S승인 처리
 http PUT :8082/services/1/accept   #Success
 ```
+ - 재고 서비스가 내려가 있는 동안 Fallback이 동작함
+![image](https://user-images.githubusercontent.com/43290879/193713545-90e75cd1-16a8-4998-a3de-1262bd0aa3c4.png)
+
 
 ## 비동기식 호출 / 시간적 디커플링 / 장애격리 / 최종 (Eventual) 일관성 테스트
 
