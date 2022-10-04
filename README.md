@@ -632,8 +632,124 @@ spec:
 
 
 ## 오토스케일 아웃
+○ Auto Scale-Out 설정
 
+ - cpu 사용율이 20%를 초과하면 Pod를 늘리도록 설정한다
+```
+kubectl autoscale deployment stock --cpu-percent=20 --min=1 --max=3
+```
+```
+gitpod /workspace/team2 (main) $ kubectl get hpa
+NAME    REFERENCE          TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+stock   Deployment/stock   1%/20%    1         3         1          111m
+```
+ - deployment.yaml 파일을 수정하여 resources.requests.cpu: "200m"을 추가한다
+```
+gitpod /workspace/team2/Stock/kubernetes (main) $ cat deployment.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stock
+  labels:
+    app: stock
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stock
+  template:
+    metadata:
+      labels:
+        app: stock
+    spec:
+      containers:
+        - name: stock
+          image: hongsm/stock:v1
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: "200m"
+          readinessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+```
+ - 변경된 yaml 파일을 사용하여 쿠버네티스에 배포한다.
+```
+kubectl delete -f deployment.yml
+kubectl apply -f deployment.yml
+```
 
+○ Auto Scale-Out 증명
+ - siege 명령으로 부하를 주어서 Pod 가 늘어나도록 한다.
+```
+root@siege:/# siege -c20 -t60S -v http://stock:8080/services
+** SIEGE 4.0.4
+** Preparing 20 concurrent users for battle.
+The server is now under siege...
+HTTP/1.1 404     0.01 secs:     110 bytes ==> GET  /services
+HTTP/1.1 404     0.01 secs:     110 bytes ==> GET  /services
+HTTP/1.1 404     0.01 secs:     110 bytes ==> GET  /services
+...
+중간생략
+HTTP/1.1 404     0.02 secs:     110 bytes ==> GET  /services
+HTTP/1.1 404     0.02 secs:     110 bytes ==> GET  /services
+HTTP/1.1 404     0.03 secs:     110 bytes ==> GET  /services
+
+Lifting the server siege...
+Transactions:                  47423 hits
+Availability:                 100.00 %
+Elapsed time:                  59.47 secs
+Data transferred:               4.97 MB
+Response time:                  0.02 secs
+Transaction rate:             797.43 trans/sec
+Throughput:                     0.08 MB/sec
+Concurrency:                   16.30
+Successful transactions:           0
+Failed transactions:               0
+Longest transaction:            0.29
+Shortest transaction:           0.00
+```
+
+ - kubectl get po -w 명령을 사용하여 pod 가 생성되는 것을 확인한다.
+
+```
+gitpod /workspace/team2/Stock/kubernetes (main) $ kubectl get po -w
+NAME                       READY   STATUS             RESTARTS   AGE
+httpie                     1/1     Running            0          3h21m
+liveness-exec              0/1     CrashLoopBackOff   33         111m
+my-kafka-0                 1/1     Running            1          3h32m
+my-kafka-zookeeper-0       1/1     Running            0          3h32m
+mysql                      1/1     Running            0          3h10m
+payment-7dc8885b79-77ldf   1/1     Running            0          101m
+request-745b9b9d74-vl576   1/1     Running            0          130m
+service-5c75dbcdc6-rnljc   1/1     Running            0          129m
+siege                      1/1     Running            0          113m
+stock-69dbb7c8b4-5k7b8     1/1     Running            0          83m
+view-858fd6bccb-7mckr      1/1     Running            0          129m
+stock-69dbb7c8b4-nklgs     0/1     Pending            0          0s
+stock-69dbb7c8b4-nklgs     0/1     Pending            0          0s
+stock-69dbb7c8b4-mvjdt     0/1     Pending            0          0s
+stock-69dbb7c8b4-nklgs     0/1     ContainerCreating   0          0s
+stock-69dbb7c8b4-mvjdt     0/1     Pending             0          0s
+stock-69dbb7c8b4-mvjdt     0/1     ContainerCreating   0          0s
+stock-69dbb7c8b4-nklgs     0/1     Running             0          1s
+stock-69dbb7c8b4-mvjdt     0/1     Running             0          2s
+stock-69dbb7c8b4-nklgs     1/1     Running             0          25s
+stock-69dbb7c8b4-mvjdt     1/1     Running             0          25s
+```
+
+ - kubectl get hpa 명령어로 CPU 값이 늘어난 것을 확인 한다.
+```
+gitpod /workspace/team2 (main) $ kubectl get hpa
+NAME    REFERENCE          TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+stock   Deployment/stock   1%/20%    1         3         1          96m
+
+gitpod /workspace/team2 (main) $ kubectl get hpa
+NAME    REFERENCE          TARGETS    MINPODS   MAXPODS   REPLICAS   AGE
+stock   Deployment/stock   621%/20%   1         3         3          97m
+```
 
 
 ## 무정지 재배포
