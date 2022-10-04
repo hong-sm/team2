@@ -21,7 +21,7 @@
     - [API Gateway (Ingress)](#api-Gateway-Ingress)
     - [오토스케일 아웃](#오토스케일-아웃)
     - [무정지 재배포](#무정지-재배포)
-    - [Persistence Volume/ConfigMap/Secret & Polyglot](#Persistence-Volume/ConfigMap/Secret-&-Polyglot)
+    - [Persistence Volume/ConfigMap/Secret & Polyglot](#persistence-volumeconfigmapsecret--polyglot)
 
 # 서비스 시나리오
 
