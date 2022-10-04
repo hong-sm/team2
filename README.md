@@ -489,7 +489,7 @@ public class PayServiceImpl implements PayService {
 #A/S승인 처리
 http PUT :8082/services/1/accept   #재고없음으로 Fail
 
-#결제서비스 재기동
+#재고 서비스 재기동
 cd Stock
 mvn spring-boot:run
 
