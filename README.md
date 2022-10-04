@@ -748,6 +748,13 @@ Shortest transaction:	        0.00
 - Retry 의 설정 (istio)
 - Availability 가 높아진 것을 확인 (siege)
 
+## Deployment
+- AWS에 클러스터를 생성하여 EKS 환경 구성
+- A/S 센터의 마이크로 서비스 각각을 EKS를 통해 Deploy가 된 것을 확인(접속 화면은 아래 Ingress 참고)
+
+![image](https://user-images.githubusercontent.com/43290879/193721361-45c43e1e-4c2a-4400-b170-945926c9b207.png)
+
+
 ## API Gateway (Ingress)
 다음과 같이 서비스를 Ingress로 구성하여 하나의 진입점으로 접속 할 수 있도록 설정
 
@@ -798,7 +805,7 @@ spec:
  - ingress가 정상적으로 뜨고 주소 확인이 가능
 ![image](https://user-images.githubusercontent.com/43290879/193720385-2bb63aae-c81e-415e-91d0-b46113fd81fe.png)
 
- - 정상적으로 접속하여 서비스 확인
+ - 해당 주소로 정상적으로 접속하여 서비스 확인
 ![image](https://user-images.githubusercontent.com/43290879/193720631-25bcf4e1-2926-42a6-8f45-17e65ce03fcc.png)
 
 
