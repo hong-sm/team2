@@ -22,7 +22,7 @@
     - [오토스케일 아웃](#오토스케일-아웃)
     - [무정지 재배포](#무정지-재배포)
     - [Persistence Volume/ConfigMap/Secret & Polyglot](#persistence-volumeconfigmapsecret--polyglot)
-    - [Self-healing(liveness probe](#self-healingliveness-probe)
+    - [Self-healing(liveness probe)](#self-healingliveness-probe)
 
 # 서비스 시나리오
 
@@ -832,4 +832,4 @@ mysql> select * from Pay_table;
 
 mysql>  
 ```
-## Self-healing(liveness probe
+## Self-healing(liveness probe)
