@@ -1024,3 +1024,70 @@ mysql> select * from Pay_table;
 mysql>  
 ```
 ## Self-healing(liveness probe)
+
+1) livenessProbe 설정 (Request 서비스 대상)
+   - [경로]/workspace/team2/Request/kubernetes/deployment.yaml
+```
+          livenessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+            initialDelaySeconds: 120
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 5  
+```
+2) livenessProbe 테스트
+  - 2-1) Request 서비스 상태 확인
+```
+        gitpod /workspace/team2/Request (main) $ kubectl get all
+        NAME                           READY   STATUS             RESTARTS   AGE
+        pod/httpie                     1/1     Running            0          3h55m
+        pod/my-kafka-0                 1/1     Running            1          4h5m
+        pod/my-kafka-zookeeper-0       1/1     Running            0          4h5m
+        pod/mysql                      1/1     Running            0          3h44m
+        pod/payment-7dc8885b79-77ldf   1/1     Running            0          134m
+        pod/request-8679c4fdf6-xhhtf   1/1     Running            0          61s
+        pod/service-54f6955d57-8lsw8   0/1     ImagePullBackOff   0          3m56s
+        pod/service-5c75dbcdc6-rnljc   1/1     Running            0          163m
+        pod/siege                      1/1     Running            0          147m
+        pod/stock-69dbb7c8b4-zqhms     1/1     Running            0          12m
+        pod/view-858fd6bccb-7mckr      1/1     Running            0          163m
+```
+
+  2-2) Request 서비스 강제 다운 DOWN
+
+```
+        gitpod /workspace/team2/Request (main) $ kubectl exec httpie -it -- bash
+        root@httpie:/# 
+        root@httpie:/# 
+        root@httpie:/# http put request:8080/actuator/down
+        HTTP/1.1 200 
+        Connection: keep-alive
+        Content-Type: application/json
+        Date: Tue, 04 Oct 2022 04:47:08 GMT
+        Keep-Alive: timeout=60
+        Transfer-Encoding: chunked
+
+        {
+            "status": "DOWN"
+        }
+```
+  2-3) Request 서비스 재기동 확인 
+
+     - pod/request-8679c4fdf6-xhhtf 서비스의 재기동 확인(RESTARTS: 1) 
+```
+        gitpod /workspace/team2/Request (main) $ kubectl get all
+        NAME                           READY   STATUS             RESTARTS   AGE
+        pod/httpie                     1/1     Running            0          3h57m
+        pod/my-kafka-0                 1/1     Running            1          4h7m
+        pod/my-kafka-zookeeper-0       1/1     Running            0          4h7m
+        pod/mysql                      1/1     Running            0          3h46m
+        pod/payment-7dc8885b79-77ldf   1/1     Running            0          136m
+        pod/request-8679c4fdf6-xhhtf   0/1     Running            1          2m34s
+        pod/service-54f6955d57-8lsw8   0/1     ImagePullBackOff   0          5m29s
+        pod/service-5c75dbcdc6-rnljc   1/1     Running            0          165m
+        pod/siege                      1/1     Running            0          148m
+        pod/stock-69dbb7c8b4-zqhms     1/1     Running            0          14m
+        pod/view-858fd6bccb-7mckr      1/1     Running            0          164m
+```
