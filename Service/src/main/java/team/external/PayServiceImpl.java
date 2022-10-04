@@ -11,6 +11,7 @@ public class PayServiceImpl implements PayService {
      */
     public Pay getPay(Long id) {
         Pay pay = new Pay();
+        System.out.println("Pay Fallback Call!");
         return pay;
     }
 
