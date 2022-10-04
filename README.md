@@ -748,6 +748,60 @@ Shortest transaction:	        0.00
 - Retry 의 설정 (istio)
 - Availability 가 높아진 것을 확인 (siege)
 
+## API Gateway (Ingress)
+다음과 같이 서비스를 Ingress로 구성하여 하나의 진입점으로 접속 할 수 있도록 설정
+
+```
+apiVersion: "extensions/v1beta1"
+kind: "Ingress"
+metadata: 
+  name: "servicecenter-ingress"
+  annotations: 
+    kubernetes.io/ingress.class: "nginx"
+spec: 
+  rules: 
+    - 
+      http: 
+        paths: 
+          - 
+            path: /requests
+            pathType: Prefix
+            backend: 
+              serviceName: request
+              servicePort: 8080
+          - 
+            path: /services
+            pathType: Prefix
+            backend: 
+              serviceName: service
+              servicePort: 8080
+          - 
+            path: /stocks
+            pathType: Prefix
+            backend: 
+              serviceName: stock
+              servicePort: 8080
+          - 
+            path: /pays
+            pathType: Prefix
+            backend: 
+              serviceName: payment
+              servicePort: 8080
+          - 
+            path: /progressViews
+            pathType: Prefix
+            backend: 
+              serviceName: view
+              servicePort: 8080
+```
+
+ - ingress가 정상적으로 뜨고 주소 확인이 가능
+![image](https://user-images.githubusercontent.com/43290879/193720385-2bb63aae-c81e-415e-91d0-b46113fd81fe.png)
+
+ - 정상적으로 접속하여 서비스 확인
+![image](https://user-images.githubusercontent.com/43290879/193720631-25bcf4e1-2926-42a6-8f45-17e65ce03fcc.png)
+
+
 ### 오토스케일 아웃
 앞서 CB 는 시스템을 안정되게 운영할 수 있게 해줬지만 사용자의 요청을 100% 받아들여주지 못했기 때문에 이에 대한 보완책으로 자동화된 확장 기능을 적용하고자 한다. 
 
