@@ -490,8 +490,7 @@ mvn spring-boot:run
 http PUT :8082/services/1/accept   #Success
 ```
  - 재고 서비스가 내려가 있는 동안 Fallback이 동작함
-![image](https://user-images.githubusercontent.com/43290879/193713545-90e75cd1-16a8-4998-a3de-1262bd0aa3c4.png)
-
+![image](https://user-images.githubusercontent.com/43290879/193722595-01ea64b2-4860-4d2c-aac8-f0a31caf0e2c.png)
 
 ## 비동기식 호출 / 시간적 디커플링 / 장애격리 / 최종 (Eventual) 일관성 테스트
 
