@@ -763,7 +763,7 @@ stock   Deployment/stock   621%/20%   1         3         3          97m
 ## 무정지 재배포
 1) siege로 부하 전송
 ```
-siege -c100 -t10S -r10 --content-type "application/json" 'http://payment:8080/pays'
+siege -c100 -t120S -r10 --content-type "application/json" 'http://payment:8080/pays'
 ```
 2) image version up
 ```
