@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: view
+  name: payment
   labels:
-    app: view
+    app: payment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: view
+      app: payment
   template:
     metadata:
       labels:
-        app: view
+        app: payment
     spec:
       containers:
-        - name: view
-          image: hongsm/view:v1
+        - name: payment
+          image: hongsm/payment:v1
           ports:
             - containerPort: 8080
           readinessProbe:

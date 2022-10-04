@@ -1,24 +1,27 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: Stock
+  name: stock
   labels:
-    app: Stock
+    app: stock
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: Stock
+      app: stock
   template:
     metadata:
       labels:
-        app: Stock
+        app: stock
     spec:
       containers:
-        - name: Stock
-          image: username/Stock:latest
+        - name: stock
+          image: hongsm/stock:v1
           ports:
             - containerPort: 8080
+          resources:
+            requests:
+              cpu: "200m"
           readinessProbe:
             httpGet:
               path: '/actuator/health'

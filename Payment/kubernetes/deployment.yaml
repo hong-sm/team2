@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: Payment
+  name: payment
   labels:
-    app: Payment
+    app: payment
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: Payment
+      app: payment
   template:
     metadata:
       labels:
-        app: Payment
+        app: payment
     spec:
       containers:
-        - name: Payment
-          image: username/Payment:latest
+        - name: payment
+          image: hongsm/payment:v4
           ports:
             - containerPort: 8080
           readinessProbe:
@@ -35,3 +35,15 @@ spec:
             timeoutSeconds: 2
             periodSeconds: 5
             failureThreshold: 5
+          env:
+            - name: _DATASOURCE_ADDRESS
+              value: mysql
+            - name: _DATASOURCE_TABLESPACE
+              value: paymentdb
+            - name: _DATASOURCE_USERNAME
+              value: root
+            - name: _DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-pass
+                  key: password

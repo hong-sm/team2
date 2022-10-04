@@ -16,10 +16,13 @@
     - [동기식 호출과 Fallback 처리](#동기식-호출과-Fallback-처리)
     - [비동기식 호출과 Eventual Consistency](#비동기식-호출과-Eventual-Consistency)
   - [운영](#운영)
-    - [CI/CD 설정](#cicd설정)
-    - [동기식 호출 / 서킷 브레이킹 / 장애격리](#동기식-호출-서킷-브레이킹-장애격리)
+    - [서킷 브레이킹](#서킷-브레이킹)
+    - [Deployment](#Deployment)
+    - [API Gateway (Ingress)](#api-Gateway-Ingress)
     - [오토스케일 아웃](#오토스케일-아웃)
     - [무정지 재배포](#무정지-재배포)
+    - [Persistence Volume/ConfigMap/Secret & Polyglot](#persistence-volumeconfigmapsecret--polyglot)
+    - [Self-healing(liveness probe)](#self-healingliveness-probe)
 
 # 서비스 시나리오
 
@@ -151,7 +154,7 @@
 
 ### 요구사항을 커버하는지 검증
 
-![image](https://user-images.githubusercontent.com/43290879/193517960-23e1c0b8-de4b-4cca-a15e-add9da5578ae.png)
+![image](https://user-images.githubusercontent.com/43290879/193727801-4f00cba6-8d11-4d09-a0b1-9dfe29b9a4cc.png)
 
     - 1) 고객이 A/S를 요청하면 서비스센터에 접수된다 (ok)
     - 2) 엔지니어가 재고를 확인하여 재고가 있는 경우 서비스를 받아들인다 (ok)
@@ -173,9 +176,8 @@
 
 
 ## 헥사고날 아키텍처 다이어그램 도출
-    
-![image](https://user-images.githubusercontent.com/43290879/193509676-61ae917a-2463-48d6-b196-d636fe22ebda.png)
-
+  
+![image](https://user-images.githubusercontent.com/43290879/193714108-2c67f71d-49c8-4fbd-a1df-e549563f4dbb.png)
 
     - Chris Richardson, MSA Patterns 참고하여 Inbound adaptor와 Outbound adaptor를 구분함
     - 호출관계에서 PubSub 과 Req/Resp 를 구분함
@@ -345,6 +347,13 @@ http PUT :8082/services/1/product-repair
 ```
 ![image](https://user-images.githubusercontent.com/43290879/193705763-774d7ffb-4796-4c1d-ada5-40b2bf7abaa2.png)
 
+```
+# CQRS를 통한 서비스 상태 확인 대시보드 ( request 서비스와 service 서비스의 정보를 조합하여 보여줌)
+http :8085/progressViews
+```
+![image](https://user-images.githubusercontent.com/43290879/193711831-af8b9002-5255-4827-a7cb-9f89ba68f16e.png)
+
+
 ## 동기식 호출과 Fallback 처리
 
 분석단계에서의 조건 중 하나로 A/S승인(service)->재고확인(stock), 수리완료(service)->결재(pay)간의 호출은 동기식 일관성을 유지하는 트랜잭션으로 처리하기로 하였다. 호출 프로토콜은 이미 앞서 Rest Repository 에 의해 노출되어있는 REST 서비스를 FeignClient 를 이용하여 호출하도록 한다. 
@@ -453,27 +462,21 @@ package team.external;
 import org.springframework.stereotype.Service;
 
 @Service
-public class PayServiceImpl implements PayService {
+public class StockServiceImpl implements StockService {
 
 
     /**
      * Fallback
      */
-    public Pay getPay(Long id) {
-        Pay pay = new Pay();
-        System.out.println("Pay Fallback Call!");
-        return pay;
-    }
-
-    @Override
-    public void pay(Pay pay) {
-        // TODO Auto-generated method stub
-        
+    public Stock getStock(String id) {
+        Stock stock = new Stock();
+        System.out.println("FallBack Stock");
+        return stock;
     }
 }
 ```
 
-- 동기식 호출에서는 호출 시간에 따른 타임 커플링이 발생하며, A/S 승인처리시 재고서비스가 내려가 있는 경우 정상 처리 불가 확 :
+- 동기식 호출에서는 호출 시간에 따른 타임 커플링이 발생하며, A/S 승인처리시 재고서비스가 내려가 있는 경우 정상 처리 불가 확인 :
 
 
 ```
@@ -482,13 +485,15 @@ public class PayServiceImpl implements PayService {
 #A/S승인 처리
 http PUT :8082/services/1/accept   #재고없음으로 Fail
 
-#결제서비스 재기동
+#재고 서비스 재기동
 cd Stock
 mvn spring-boot:run
 
 #A/S승인 처리
 http PUT :8082/services/1/accept   #Success
 ```
+ - 재고 서비스가 내려가 있는 동안 Fallback이 동작함
+![image](https://user-images.githubusercontent.com/43290879/193722595-01ea64b2-4860-4d2c-aac8-f0a31caf0e2c.png)
 
 ## 비동기식 호출 / 시간적 디커플링 / 장애격리 / 최종 (Eventual) 일관성 테스트
 
@@ -562,283 +567,535 @@ public class Service  {
 
 # 운영
 
-## CI/CD 설정
+## 서킷 브레이킹
+- 동작 환경 : Stock의 Sevice를 삭제한 상태에서 Service -> Stock 호출
+- Siege를 이용한 Service -> Stock 호출
+![image](https://user-images.githubusercontent.com/43290879/193741344-bcd19058-aed2-449e-9789-5ed55d5c61b2.png)
 
-각 구현체들은 각자의 source repository 에 구성되었고, 사용한 CI/CD 플랫폼은 GCP를 사용하였으며, pipeline build script 는 각 프로젝트 폴더 이하에 cloudbuild.yml 에 포함되었다.
+- Fallback 호출 로그
+![image](https://user-images.githubusercontent.com/43290879/193741408-077d0699-5e02-4a26-9c66-4b27bcc5b086.png)
+
+- Stock Service가 구동하지 않는 상태
+![image](https://user-images.githubusercontent.com/43290879/193741594-ebc28239-146c-4772-b2b5-e902c8ac99b9.png)
+
+## Deployment
+- AWS에 클러스터를 생성하여 EKS 환경 구성
+- A/S 센터의 마이크로 서비스 각각을 EKS를 통해 Deploy가 된 것을 확인(접속 화면은 아래 Ingress 참고)
+
+![image](https://user-images.githubusercontent.com/43290879/193721361-45c43e1e-4c2a-4400-b170-945926c9b207.png)
 
 
-## 동기식 호출 / 서킷 브레이킹 / 장애격리
-
-* 서킷 브레이킹 프레임워크의 선택: Spring FeignClient + Hystrix 옵션을 사용하여 구현함
-
-시나리오는 단말앱(app)-->결제(pay) 시의 연결을 RESTful Request/Response 로 연동하여 구현이 되어있고, 결제 요청이 과도할 경우 CB 를 통하여 장애격리.
-
-- Hystrix 를 설정:  요청처리 쓰레드에서 처리시간이 610 밀리가 넘어서기 시작하여 어느정도 유지되면 CB 회로가 닫히도록 (요청을 빠르게 실패처리, 차단) 설정
-```
-# application.yml
-feign:
-  hystrix:
-    enabled: true
-    
-hystrix:
-  command:
-    # 전역설정
-    default:
-      execution.isolation.thread.timeoutInMilliseconds: 610
+## API Gateway (Ingress)
+다음과 같이 서비스를 Ingress로 구성하여 하나의 진입점으로 접속 할 수 있도록 설정
 
 ```
-
-- 피호출 서비스(결제:pay) 의 임의 부하 처리 - 400 밀리에서 증감 220 밀리 정도 왔다갔다 하게
+apiVersion: "extensions/v1beta1"
+kind: "Ingress"
+metadata: 
+  name: "servicecenter-ingress"
+  annotations: 
+    kubernetes.io/ingress.class: "nginx"
+spec: 
+  rules: 
+    - 
+      http: 
+        paths: 
+          - 
+            path: /requests
+            pathType: Prefix
+            backend: 
+              serviceName: request
+              servicePort: 8080
+          - 
+            path: /services
+            pathType: Prefix
+            backend: 
+              serviceName: service
+              servicePort: 8080
+          - 
+            path: /stocks
+            pathType: Prefix
+            backend: 
+              serviceName: stock
+              servicePort: 8080
+          - 
+            path: /pays
+            pathType: Prefix
+            backend: 
+              serviceName: payment
+              servicePort: 8080
+          - 
+            path: /progressViews
+            pathType: Prefix
+            backend: 
+              serviceName: view
+              servicePort: 8080
 ```
-# (pay) 결제이력.java (Entity)
 
-    @PrePersist
-    public void onPrePersist(){  //결제이력을 저장한 후 적당한 시간 끌기
+ - ingress가 정상적으로 뜨고 주소 확인이 가능
+![image](https://user-images.githubusercontent.com/43290879/193720385-2bb63aae-c81e-415e-91d0-b46113fd81fe.png)
 
-        ...
-        
-        try {
-            Thread.currentThread().sleep((long) (400 + Math.random() * 220));
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
+ - 해당 주소로 정상적으로 접속하여 서비스 확인
+![image](https://user-images.githubusercontent.com/43290879/193720631-25bcf4e1-2926-42a6-8f45-17e65ce03fcc.png)
+
+
+## 오토스케일 아웃
+○ Auto Scale-Out 설정
+
+ - cpu 사용율이 20%를 초과하면 Pod를 늘리도록 설정한다
+```
+kubectl autoscale deployment stock --cpu-percent=20 --min=1 --max=3
+```
+```
+gitpod /workspace/team2 (main) $ kubectl get hpa
+NAME    REFERENCE          TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+stock   Deployment/stock   1%/20%    1         3         1          111m
+```
+ - deployment.yaml 파일을 수정하여 resources.requests.cpu: "200m"을 추가한다
+```
+gitpod /workspace/team2/Stock/kubernetes (main) $ cat deployment.yaml 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stock
+  labels:
+    app: stock
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: stock
+  template:
+    metadata:
+      labels:
+        app: stock
+    spec:
+      containers:
+        - name: stock
+          image: hongsm/stock:v1
+          ports:
+            - containerPort: 8080
+          resources:
+            requests:
+              cpu: "200m"
+          readinessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+```
+ - 변경된 yaml 파일을 사용하여 쿠버네티스에 배포한다.
+```
+kubectl delete -f deployment.yml
+kubectl apply -f deployment.yml
 ```
 
-* 부하테스터 siege 툴을 통한 서킷 브레이커 동작 확인:
-- 동시사용자 100명
-- 60초 동안 실시
-
+○ Auto Scale-Out 증명
+ - siege 명령으로 부하를 주어서 Pod 가 늘어나도록 한다.
 ```
-$ siege -c100 -t60S -r10 --content-type "application/json" 'http://localhost:8081/orders POST {"item": "chicken"}'
-
-** SIEGE 4.0.5
-** Preparing 100 concurrent users for battle.
+root@siege:/# siege -c20 -t60S -v http://stock:8080/services
+** SIEGE 4.0.4
+** Preparing 20 concurrent users for battle.
 The server is now under siege...
+HTTP/1.1 404     0.01 secs:     110 bytes ==> GET  /services
+HTTP/1.1 404     0.01 secs:     110 bytes ==> GET  /services
+HTTP/1.1 404     0.01 secs:     110 bytes ==> GET  /services
+...
+중간생략
+HTTP/1.1 404     0.02 secs:     110 bytes ==> GET  /services
+HTTP/1.1 404     0.02 secs:     110 bytes ==> GET  /services
+HTTP/1.1 404     0.03 secs:     110 bytes ==> GET  /services
 
-HTTP/1.1 201     0.68 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.68 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.70 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.70 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.73 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.75 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.77 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.97 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.81 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.87 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.12 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.16 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.17 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.26 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.25 secs:     207 bytes ==> POST http://localhost:8081/orders
+Lifting the server siege...
+Transactions:                  47423 hits
+Availability:                 100.00 %
+Elapsed time:                  59.47 secs
+Data transferred:               4.97 MB
+Response time:                  0.02 secs
+Transaction rate:             797.43 trans/sec
+Throughput:                     0.08 MB/sec
+Concurrency:                   16.30
+Successful transactions:           0
+Failed transactions:               0
+Longest transaction:            0.29
+Shortest transaction:           0.00
+```
 
-* 요청이 과도하여 CB를 동작함 요청을 차단
-
-HTTP/1.1 500     1.29 secs:     248 bytes ==> POST http://localhost:8081/orders   
-HTTP/1.1 500     1.24 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     1.23 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     1.42 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     2.08 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.29 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     1.24 secs:     248 bytes ==> POST http://localhost:8081/orders
-
-* 요청을 어느정도 돌려보내고나니, 기존에 밀린 일들이 처리되었고, 회로를 닫아 요청을 다시 받기 시작
-
-HTTP/1.1 201     1.46 secs:     207 bytes ==> POST http://localhost:8081/orders  
-HTTP/1.1 201     1.33 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.36 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.63 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.65 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.68 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.69 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.71 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.71 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.74 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.76 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     1.79 secs:     207 bytes ==> POST http://localhost:8081/orders
-
-* 다시 요청이 쌓이기 시작하여 건당 처리시간이 610 밀리를 살짝 넘기기 시작 => 회로 열기 => 요청 실패처리
-
-HTTP/1.1 500     1.93 secs:     248 bytes ==> POST http://localhost:8081/orders    
-HTTP/1.1 500     1.92 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     1.93 secs:     248 bytes ==> POST http://localhost:8081/orders
-
-* 생각보다 빨리 상태 호전됨 - (건당 (쓰레드당) 처리시간이 610 밀리 미만으로 회복) => 요청 수락
-
-HTTP/1.1 201     2.24 secs:     207 bytes ==> POST http://localhost:8081/orders  
-HTTP/1.1 201     2.32 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.16 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.19 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.19 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.19 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.21 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.29 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.30 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.38 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.59 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.61 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.62 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     2.64 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.01 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.27 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.33 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.45 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.52 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.57 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.69 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.70 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.69 secs:     207 bytes ==> POST http://localhost:8081/orders
-
-* 이후 이러한 패턴이 계속 반복되면서 시스템은 도미노 현상이나 자원 소모의 폭주 없이 잘 운영됨
-
-
-HTTP/1.1 500     4.76 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.23 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.76 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.74 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.82 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.82 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.84 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.66 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     5.03 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.22 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.19 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.18 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.69 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.65 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     5.13 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.84 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.25 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.25 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.80 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.87 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.33 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.86 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.96 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.34 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 500     4.04 secs:     248 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.50 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.95 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.54 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     4.65 secs:     207 bytes ==> POST http://localhost:8081/orders
-
-
-:
-:
-
-Transactions:		        1025 hits
-Availability:		       63.55 %
-Elapsed time:		       59.78 secs
-Data transferred:	        0.34 MB
-Response time:		        5.60 secs
-Transaction rate:	       17.15 trans/sec
-Throughput:		        0.01 MB/sec
-Concurrency:		       96.02
-Successful transactions:        1025
-Failed transactions:	         588
-Longest transaction:	        9.20
-Shortest transaction:	        0.00
+ - kubectl get po -w 명령을 사용하여 pod 가 생성되는 것을 확인한다.
 
 ```
-- 운영시스템은 죽지 않고 지속적으로 CB 에 의하여 적절히 회로가 열림과 닫힘이 벌어지면서 자원을 보호하고 있음을 보여줌. 하지만, 63.55% 가 성공하였고, 46%가 실패했다는 것은 고객 사용성에 있어 좋지 않기 때문에 Retry 설정과 동적 Scale out (replica의 자동적 추가,HPA) 을 통하여 시스템을 확장 해주는 후속처리가 필요.
+gitpod /workspace/team2/Stock/kubernetes (main) $ kubectl get po -w
+NAME                       READY   STATUS             RESTARTS   AGE
+httpie                     1/1     Running            0          3h21m
+liveness-exec              0/1     CrashLoopBackOff   33         111m
+my-kafka-0                 1/1     Running            1          3h32m
+my-kafka-zookeeper-0       1/1     Running            0          3h32m
+mysql                      1/1     Running            0          3h10m
+payment-7dc8885b79-77ldf   1/1     Running            0          101m
+request-745b9b9d74-vl576   1/1     Running            0          130m
+service-5c75dbcdc6-rnljc   1/1     Running            0          129m
+siege                      1/1     Running            0          113m
+stock-69dbb7c8b4-5k7b8     1/1     Running            0          83m
+view-858fd6bccb-7mckr      1/1     Running            0          129m
+stock-69dbb7c8b4-nklgs     0/1     Pending            0          0s
+stock-69dbb7c8b4-nklgs     0/1     Pending            0          0s
+stock-69dbb7c8b4-mvjdt     0/1     Pending            0          0s
+stock-69dbb7c8b4-nklgs     0/1     ContainerCreating   0          0s
+stock-69dbb7c8b4-mvjdt     0/1     Pending             0          0s
+stock-69dbb7c8b4-mvjdt     0/1     ContainerCreating   0          0s
+stock-69dbb7c8b4-nklgs     0/1     Running             0          1s
+stock-69dbb7c8b4-mvjdt     0/1     Running             0          2s
+stock-69dbb7c8b4-nklgs     1/1     Running             0          25s
+stock-69dbb7c8b4-mvjdt     1/1     Running             0          25s
+```
 
-- Retry 의 설정 (istio)
-- Availability 가 높아진 것을 확인 (siege)
+ - kubectl get hpa 명령어로 CPU 값이 늘어난 것을 확인 한다.
+```
+gitpod /workspace/team2 (main) $ kubectl get hpa
+NAME    REFERENCE          TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+stock   Deployment/stock   1%/20%    1         3         1          96m
 
-### 오토스케일 아웃
-앞서 CB 는 시스템을 안정되게 운영할 수 있게 해줬지만 사용자의 요청을 100% 받아들여주지 못했기 때문에 이에 대한 보완책으로 자동화된 확장 기능을 적용하고자 한다. 
-
-
-- 결제서비스에 대한 replica 를 동적으로 늘려주도록 HPA 를 설정한다. 설정은 CPU 사용량이 15프로를 넘어서면 replica 를 10개까지 늘려준다:
-```
-kubectl autoscale deploy pay --min=1 --max=10 --cpu-percent=15
-```
-- CB 에서 했던 방식대로 워크로드를 2분 동안 걸어준다.
-```
-siege -c100 -t120S -r10 --content-type "application/json" 'http://localhost:8081/orders POST {"item": "chicken"}'
-```
-- 오토스케일이 어떻게 되고 있는지 모니터링을 걸어둔다:
-```
-kubectl get deploy pay -w
-```
-- 어느정도 시간이 흐른 후 (약 30초) 스케일 아웃이 벌어지는 것을 확인할 수 있다:
-```
-NAME    DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
-pay     1         1         1            1           17s
-pay     1         2         1            1           45s
-pay     1         4         1            1           1m
-:
-```
-- siege 의 로그를 보아도 전체적인 성공률이 높아진 것을 확인 할 수 있다. 
-```
-Transactions:		        5078 hits
-Availability:		       92.45 %
-Elapsed time:		       120 secs
-Data transferred:	        0.34 MB
-Response time:		        5.60 secs
-Transaction rate:	       17.15 trans/sec
-Throughput:		        0.01 MB/sec
-Concurrency:		       96.02
+gitpod /workspace/team2 (main) $ kubectl get hpa
+NAME    REFERENCE          TARGETS    MINPODS   MAXPODS   REPLICAS   AGE
+stock   Deployment/stock   621%/20%   1         3         3          97m
 ```
 
 
 ## 무정지 재배포
-
-* 먼저 무정지 재배포가 100% 되는 것인지 확인하기 위해서 Autoscaler 이나 CB 설정을 제거함
-
-- seige 로 배포작업 직전에 워크로드를 모니터링 함.
+1) siege로 부하 전송
 ```
-siege -c100 -t120S -r10 --content-type "application/json" 'http://localhost:8081/orders POST {"item": "chicken"}'
-
-** SIEGE 4.0.5
+siege -c100 -t120S -r10 --content-type "application/json" 'http://payment:8080/pays'
+```
+2) image version up
+```
+gitpod /workspace/team2/Payment (main) $ docker build -t hongsm/payment:v4 .
+Sending build context to Docker daemon   76.3MB
+Step 1/6 : FROM openjdk:15-jdk-alpine
+ ---> f02adfce91a2
+Step 2/6 : COPY target/*SNAPSHOT.jar app.jar
+ ---> Using cache
+ ---> 204bec0feb4f
+Step 3/6 : EXPOSE 8080
+ ---> Using cache
+ ---> aeffbed37567
+Step 4/6 : ENV TZ=Asia/Seoul
+ ---> Using cache
+ ---> 605a86f45f74
+Step 5/6 : RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+ ---> Using cache
+ ---> 1a759eea8ace
+Step 6/6 : ENTRYPOINT ["java","-Xmx400M","-Djava.security.egd=file:/dev/./urandom","-jar","/app.jar","--spring.profiles.active=docker"]
+ ---> Using cache
+ ---> fb1072a4b38c
+Successfully built fb1072a4b38c
+Successfully tagged hongsm/payment:v4
+gitpod /workspace/team2/Payment (main) $ docker push hongsm/payment:v4
+The push refers to repository [docker.io/hongsm/payment]
+be2e03a67fab: Layer already exists 
+2a99bbd38e24: Layer already exists 
+ca35920ce48a: Layer already exists 
+a9711b2e31f2: Layer already exists 
+50644c29ef5a: Layer already exists 
+v4: digest: sha256:2e804a132583818c878e94eb99cdfb3ce914817d5988f03d898e61b0776fcbf0 size: 1370
+gitpod /workspace/team2/Payment (main) $ kubectl apply -f kubernetes/deployment.yaml
+deployment.apps/payment configured
+```
+3) 결과 확인
+```
+root@siege:/# siege -c100 -t120S -r10 --content-type "application/json" 'http://payment:8080/pays'
+[error] CONFIG conflict: selected time and repetition based testing
+defaulting to time-based testing: 120 seconds
+** SIEGE 4.0.4
 ** Preparing 100 concurrent users for battle.
 The server is now under siege...
+Lifting the server siege...
+Transactions:                  33947 hits
+Availability:                 100.00 %
+Elapsed time:                 119.95 secs
+Data transferred:              19.68 MB
+Response time:                  0.35 secs
+Transaction rate:             283.01 trans/sec
+Throughput:                     0.16 MB/sec
+Concurrency:                   99.85
+Successful transactions:       33947
+Failed transactions:               0
+Longest transaction:           15.90
+Shortest transaction:           0.00
 
-HTTP/1.1 201     0.68 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.68 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.70 secs:     207 bytes ==> POST http://localhost:8081/orders
-HTTP/1.1 201     0.70 secs:     207 bytes ==> POST http://localhost:8081/orders
-:
+gitpod /workspace/team2/Payment (main) $ kubectl get all -l app=payment
+NAME                          READY   STATUS    RESTARTS   AGE
+pod/payment-76c75d894-l9md4   1/1     Running   0          6m35s
 
+NAME              TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+service/payment   ClusterIP   10.100.87.172   <none>        8080/TCP   3h6m
+
+NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/payment   1/1     1            1           3h18m
+
+NAME                                 DESIRED   CURRENT   READY   AGE
+replicaset.apps/payment-5d6c958c7    0         0         0       3h1m
+replicaset.apps/payment-6678f566dd   0         0         0       161m
+replicaset.apps/payment-66b4656587   0         0         0       3h18m
+replicaset.apps/payment-76c75d894    1         1         1       6m36s
+replicaset.apps/payment-7dc8885b79   0         0         0       153m
+gitpod /workspace/team2/Payment (main) $ 
 ```
 
-- 새버전으로의 배포 시작
+## Persistence Volume/ConfigMap/Secret & Polyglot
+
+payment 서비스에 mysql을 적용하여 위의 요건을 적용하고자 한다.
+
+1) pom.xml 변경
+   - mysql을 사용하기 위하여 dependency를 추가한다.
 ```
-kubectl set image ...
+    	<dependency>
+	    	<groupId>mysql</groupId>
+		    <artifactId>mysql-connector-java</artifactId>
+	    </dependency>
+```
+2) application.yml 변경
+  - mysql을 사용하기 위하여 mysql 정보를 추가한다.
+```
+spring:
+  jpa:
+    hibernate:
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+      ddl-auto: update
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQL57Dialect
+  datasource:
+    url: jdbc:mysql://${_DATASOURCE_ADDRESS:3306}/${_DATASOURCE_TABLESPACE}
+    username: ${_DATASOURCE_USERNAME}
+    password: ${_DATASOURCE_PASSWORD}
+    driverClassName: com.mysql.cj.jdbc.Driver
+```
+3) deployment.yaml 변경
+  - 환경 정보 사용을 위하여 해당 내용 추가한다.
+```
+          env:
+            - name: _DATASOURCE_ADDRESS
+              value: mysql
+            - name: _DATASOURCE_TABLESPACE
+              value: paymentdb
+            - name: _DATASOURCE_USERNAME
+              value: root
+            - name: _DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-pass
+                  key: password
+```
+4) mysql 서비스 구동 (pod 생성, pvc 생성, svc 생성, secret 생성) 
+ 
+ 4-1) pod 생성
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql
+  labels:
+    name: lbl-k8s-mysql
+spec:
+  containers:
+  - name: mysql
+    image: mysql:latest
+    env:
+    - name: MYSQL_ROOT_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: mysql-pass
+          key: password
+    ports:
+    - name: mysql
+      containerPort: 3306
+      protocol: TCP
+    volumeMounts:
+    - name: k8s-mysql-storage
+      mountPath: /var/lib/mysql
+  volumes:
+  - name: k8s-mysql-storage
+    persistentVolumeClaim:
+      claimName: "fs"
+```
+4-2) pvc 생성
+```
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fs
+  labels:
+    app: test-pvc
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Mi
+```
+4-3) service 생성
+```
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: lbl-k8s-mysql
+  name: mysql
+spec:
+  ports:
+  - port: 3306
+    protocol: TCP
+    targetPort: 3306
+  selector:
+    name: lbl-k8s-mysql
+  type: ClusterIP
+```
+4-4) secret 생성
+```
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-pass
+type: Opaque
+data:
+  password: YWRtaW4=     
+```
+5) 적용 후 DB 저장 내용
+
+- 수행
+```
+root@httpie:/# http payment:8080/pays requestId=10
+HTTP/1.1 201 
+Connection: keep-alive
+Content-Type: application/json
+Date: Tue, 04 Oct 2022 02:33:06 GMT
+Keep-Alive: timeout=60
+Location: http://payment:8080/pays/1
+Transfer-Encoding: chunked
+Vary: Origin
+Vary: Access-Control-Request-Method
+Vary: Access-Control-Request-Headers
+
+{
+    "_links": {
+        "pay": {
+            "href": "http://payment:8080/pays/1"
+        }, 
+        "self": {
+            "href": "http://payment:8080/pays/1"
+        }
+    }, 
+    "payDate": "2022-10-04T02:33:07.187+00:00", 
+    "price": null, 
+    "requestId": 10, 
+    "status": null
+}
+```
+- DB 저장 결과
+```
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| paymentdb          |
+| performance_schema |
+| sys                |
++--------------------+
+5 rows in set (0.00 sec)
+
+mysql> use paymentdb;
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+mysql> show tables;
++---------------------+
+| Tables_in_paymentdb |
++---------------------+
+| Pay_table           |
+| hibernate_sequence  |
++---------------------+
+2 rows in set (0.00 sec)
+
+mysql> select * from Pay_table;
++----+----------------------------+-------+-----------+--------+
+| id | payDate                    | price | requestId | status |
++----+----------------------------+-------+-----------+--------+
+|  1 | 2022-10-04 02:33:07.187000 |  NULL |        10 | NULL   |
++----+----------------------------+-------+-----------+--------+
+1 row in set (0.00 sec)
+
+mysql>  
+```
+## Self-healing(liveness probe)
+
+1) livenessProbe 설정 (Request 서비스 대상)
+   - [경로]/workspace/team2/Request/kubernetes/deployment.yaml
+```
+          livenessProbe:
+            httpGet:
+              path: '/actuator/health'
+              port: 8080
+            initialDelaySeconds: 120
+            timeoutSeconds: 2
+            periodSeconds: 5
+            failureThreshold: 5  
+```
+2) livenessProbe 테스트
+  - 2-1) Request 서비스 상태 확인
+```
+        gitpod /workspace/team2/Request (main) $ kubectl get all
+        NAME                           READY   STATUS             RESTARTS   AGE
+        pod/httpie                     1/1     Running            0          3h55m
+        pod/my-kafka-0                 1/1     Running            1          4h5m
+        pod/my-kafka-zookeeper-0       1/1     Running            0          4h5m
+        pod/mysql                      1/1     Running            0          3h44m
+        pod/payment-7dc8885b79-77ldf   1/1     Running            0          134m
+        pod/request-8679c4fdf6-xhhtf   1/1     Running            0          61s
+        pod/service-54f6955d57-8lsw8   0/1     ImagePullBackOff   0          3m56s
+        pod/service-5c75dbcdc6-rnljc   1/1     Running            0          163m
+        pod/siege                      1/1     Running            0          147m
+        pod/stock-69dbb7c8b4-zqhms     1/1     Running            0          12m
+        pod/view-858fd6bccb-7mckr      1/1     Running            0          163m
 ```
 
-- seige 의 화면으로 넘어가서 Availability 가 100% 미만으로 떨어졌는지 확인
-```
-Transactions:		        3078 hits
-Availability:		       70.45 %
-Elapsed time:		       120 secs
-Data transferred:	        0.34 MB
-Response time:		        5.60 secs
-Transaction rate:	       17.15 trans/sec
-Throughput:		        0.01 MB/sec
-Concurrency:		       96.02
+  2-2) Request 서비스 강제 다운 DOWN
 
 ```
-배포기간중 Availability 가 평소 100%에서 70% 대로 떨어지는 것을 확인. 원인은 쿠버네티스가 성급하게 새로 올려진 서비스를 READY 상태로 인식하여 서비스 유입을 진행한 것이기 때문. 이를 막기위해 Readiness Probe 를 설정함:
+        gitpod /workspace/team2/Request (main) $ kubectl exec httpie -it -- bash
+        root@httpie:/# 
+        root@httpie:/# 
+        root@httpie:/# http put request:8080/actuator/down
+        HTTP/1.1 200 
+        Connection: keep-alive
+        Content-Type: application/json
+        Date: Tue, 04 Oct 2022 04:47:08 GMT
+        Keep-Alive: timeout=60
+        Transfer-Encoding: chunked
 
+        {
+            "status": "DOWN"
+        }
 ```
-# deployment.yaml 의 readiness probe 의 설정:
+  2-3) Request 서비스 재기동 확인 
 
-
-kubectl apply -f kubernetes/deployment.yaml
+     - pod/request-8679c4fdf6-xhhtf 서비스의 재기동 확인(RESTARTS: 1) 
 ```
-
-- 동일한 시나리오로 재배포 한 후 Availability 확인:
+        gitpod /workspace/team2/Request (main) $ kubectl get all
+        NAME                           READY   STATUS             RESTARTS   AGE
+        pod/httpie                     1/1     Running            0          3h57m
+        pod/my-kafka-0                 1/1     Running            1          4h7m
+        pod/my-kafka-zookeeper-0       1/1     Running            0          4h7m
+        pod/mysql                      1/1     Running            0          3h46m
+        pod/payment-7dc8885b79-77ldf   1/1     Running            0          136m
+        pod/request-8679c4fdf6-xhhtf   0/1     Running            1          2m34s
+        pod/service-54f6955d57-8lsw8   0/1     ImagePullBackOff   0          5m29s
+        pod/service-5c75dbcdc6-rnljc   1/1     Running            0          165m
+        pod/siege                      1/1     Running            0          148m
+        pod/stock-69dbb7c8b4-zqhms     1/1     Running            0          14m
+        pod/view-858fd6bccb-7mckr      1/1     Running            0          164m
 ```
-Transactions:		        3078 hits
-Availability:		       100 %
-Elapsed time:		       120 secs
-Data transferred:	        0.34 MB
-Response time:		        5.60 secs
-Transaction rate:	       17.15 trans/sec
-Throughput:		        0.01 MB/sec
-Concurrency:		       96.02
-
-```
-
-배포기간 동안 Availability 가 변화없기 때문에 무정지 재배포가 성공한 것으로 확인됨.

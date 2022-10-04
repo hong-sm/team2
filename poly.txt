@@ -1,0 +1,283 @@
+Persistence Volume/ConfigMap/Secret & Polyglot
+
+payment 서비스에 mysql을 적용하여 위의 요건을 적용하고자 한다.
+
+1) pom.xml 변경
+ . mysql을 사용하기 위하여 dependency를 추가한다.
+
+    	<dependency>
+	    	<groupId>mysql</groupId>
+		    <artifactId>mysql-connector-java</artifactId>
+	    </dependency>
+
+2) application.yml 변경
+ . mysql을 사용하기 위하여 mysql 정보를 추가한다.
+
+spring:
+  jpa:
+    hibernate:
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+      ddl-auto: update
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQL57Dialect
+  datasource:
+    url: jdbc:mysql://${_DATASOURCE_ADDRESS:3306}/${_DATASOURCE_TABLESPACE}
+    username: ${_DATASOURCE_USERNAME}
+    password: ${_DATASOURCE_PASSWORD}
+    driverClassName: com.mysql.cj.jdbc.Driver
+
+3) deployment.yaml 변경
+ . 환경 정보 사용을 위하여 해당 내용 추가한다.
+
+          env:
+            - name: _DATASOURCE_ADDRESS
+              value: mysql
+            - name: _DATASOURCE_TABLESPACE
+              value: paymentdb
+            - name: _DATASOURCE_USERNAME
+              value: root
+            - name: _DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-pass
+                  key: password
+
+4) mysql 서비스 구동 (pod 생성, pvc 생성, svc 생성, secret 생성)
+ 
+4-1) pod 생성
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql
+  labels:
+    name: lbl-k8s-mysql
+spec:
+  containers:
+  - name: mysql
+    image: mysql:latest
+    env:
+    - name: MYSQL_ROOT_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: mysql-pass
+          key: password
+    ports:
+    - name: mysql
+      containerPort: 3306
+      protocol: TCP
+    volumeMounts:
+    - name: k8s-mysql-storage
+      mountPath: /var/lib/mysql
+  volumes:
+  - name: k8s-mysql-storage
+    persistentVolumeClaim:
+      claimName: "fs"
+
+4-2) pvc 생성
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fs
+  labels:
+    app: test-pvc
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Mi
+
+4-3) service 생성
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: lbl-k8s-mysql
+  name: mysql
+spec:
+  ports:
+  - port: 3306
+    protocol: TCP
+    targetPort: 3306
+  selector:
+    name: lbl-k8s-mysql
+  type: ClusterIP
+
+4-4) secret 생성
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-pass
+type: Opaque
+data:
+  password: YWRtaW4=     
+
+5) 적용 후 DB 저장 내용
+
+- 수행
+root@httpie:/# http payment:8080/pays requestId=10
+HTTP/1.1 201 
+Connection: keep-alive
+Content-Type: application/json
+Date: Tue, 04 Oct 2022 02:33:06 GMT
+Keep-Alive: timeout=60
+Location: http://payment:8080/pays/1
+Transfer-Encoding: chunked
+Vary: Origin
+Vary: Access-Control-Request-Method
+Vary: Access-Control-Request-Headers
+
+{
+    "_links": {
+        "pay": {
+            "href": "http://payment:8080/pays/1"
+        }, 
+        "self": {
+            "href": "http://payment:8080/pays/1"
+        }
+    }, 
+    "payDate": "2022-10-04T02:33:07.187+00:00", 
+    "price": null, 
+    "requestId": 10, 
+    "status": null
+}
+
+- DB 저장 결과
+
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| paymentdb          |
+| performance_schema |
+| sys                |
++--------------------+
+5 rows in set (0.00 sec)
+
+mysql> use paymentdb;
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+mysql> show tables;
++---------------------+
+| Tables_in_paymentdb |
++---------------------+
+| Pay_table           |
+| hibernate_sequence  |
++---------------------+
+2 rows in set (0.00 sec)
+
+mysql> select * from Pay_table;
++----+----------------------------+-------+-----------+--------+
+| id | payDate                    | price | requestId | status |
++----+----------------------------+-------+-----------+--------+
+|  1 | 2022-10-04 02:33:07.187000 |  NULL |        10 | NULL   |
++----+----------------------------+-------+-----------+--------+
+1 row in set (0.00 sec)
+
+mysql>  
+
+
+
+
+---
+
+Readiness probe
+ . 무중단 서비스 확인
+
+1) siege로 부하 전송
+
+siege -c100 -t10S -r10 --content-type "application/json" 'http://payment:8080/pays'
+
+2) image version up
+
+gitpod /workspace/team2/Payment (main) $ docker build -t hongsm/payment:v4 .
+Sending build context to Docker daemon   76.3MB
+Step 1/6 : FROM openjdk:15-jdk-alpine
+ ---> f02adfce91a2
+Step 2/6 : COPY target/*SNAPSHOT.jar app.jar
+ ---> Using cache
+ ---> 204bec0feb4f
+Step 3/6 : EXPOSE 8080
+ ---> Using cache
+ ---> aeffbed37567
+Step 4/6 : ENV TZ=Asia/Seoul
+ ---> Using cache
+ ---> 605a86f45f74
+Step 5/6 : RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+ ---> Using cache
+ ---> 1a759eea8ace
+Step 6/6 : ENTRYPOINT ["java","-Xmx400M","-Djava.security.egd=file:/dev/./urandom","-jar","/app.jar","--spring.profiles.active=docker"]
+ ---> Using cache
+ ---> fb1072a4b38c
+Successfully built fb1072a4b38c
+Successfully tagged hongsm/payment:v4
+gitpod /workspace/team2/Payment (main) $ docker push hongsm/payment:v4
+The push refers to repository [docker.io/hongsm/payment]
+be2e03a67fab: Layer already exists 
+2a99bbd38e24: Layer already exists 
+ca35920ce48a: Layer already exists 
+a9711b2e31f2: Layer already exists 
+50644c29ef5a: Layer already exists 
+v4: digest: sha256:2e804a132583818c878e94eb99cdfb3ce914817d5988f03d898e61b0776fcbf0 size: 1370
+gitpod /workspace/team2/Payment (main) $ kubectl apply -f kubernetes/deployment.yaml
+deployment.apps/payment configured
+
+3) 결과 확인
+
+root@siege:/# siege -c100 -t120S -r10 --content-type "application/json" 'http://payment:8080/pays'
+[error] CONFIG conflict: selected time and repetition based testing
+defaulting to time-based testing: 120 seconds
+** SIEGE 4.0.4
+** Preparing 100 concurrent users for battle.
+The server is now under siege...
+Lifting the server siege...
+Transactions:                  33947 hits
+Availability:                 100.00 %
+Elapsed time:                 119.95 secs
+Data transferred:              19.68 MB
+Response time:                  0.35 secs
+Transaction rate:             283.01 trans/sec
+Throughput:                     0.16 MB/sec
+Concurrency:                   99.85
+Successful transactions:       33947
+Failed transactions:               0
+Longest transaction:           15.90
+Shortest transaction:           0.00
+
+gitpod /workspace/team2/Payment (main) $ kubectl get all -l app=payment
+NAME                          READY   STATUS    RESTARTS   AGE
+pod/payment-76c75d894-l9md4   1/1     Running   0          6m35s
+
+NAME              TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+service/payment   ClusterIP   10.100.87.172   <none>        8080/TCP   3h6m
+
+NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/payment   1/1     1            1           3h18m
+
+NAME                                 DESIRED   CURRENT   READY   AGE
+replicaset.apps/payment-5d6c958c7    0         0         0       3h1m
+replicaset.apps/payment-6678f566dd   0         0         0       161m
+replicaset.apps/payment-66b4656587   0         0         0       3h18m
+replicaset.apps/payment-76c75d894    1         1         1       6m36s
+replicaset.apps/payment-7dc8885b79   0         0         0       153m
+gitpod /workspace/team2/Payment (main) $ 
+
+
+
+서킷 브레이커
+동작 환경 : Stock의 Sevice를 삭제한 상태에서 Service -> Stock 호출
+캡처 파일 1번 - Siege를 이요한 Service -> Stock 호출
+캡처 파일 2번 - Fallback 호출 로그
+캡처 파일 3번 - Stock Service가 구동하지 않는 상태

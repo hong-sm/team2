@@ -1,0 +1,41 @@
+apiVersion: "extensions/v1beta1"
+kind: "Ingress"
+metadata: 
+  name: "servicecenter-ingress"
+  annotations: 
+    kubernetes.io/ingress.class: "nginx"
+spec: 
+  rules: 
+    - 
+      http: 
+        paths: 
+          - 
+            path: /requests
+            pathType: Prefix
+            backend: 
+              serviceName: request
+              servicePort: 8080
+          - 
+            path: /services
+            pathType: Prefix
+            backend: 
+              serviceName: service
+              servicePort: 8080
+          - 
+            path: /stocks
+            pathType: Prefix
+            backend: 
+              serviceName: stock
+              servicePort: 8080
+          - 
+            path: /pays
+            pathType: Prefix
+            backend: 
+              serviceName: payment
+              servicePort: 8080
+          - 
+            path: /progressViews
+            pathType: Prefix
+            backend: 
+              serviceName: view
+              servicePort: 8080

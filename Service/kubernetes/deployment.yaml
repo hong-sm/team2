@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: Service
+  name: service
   labels:
-    app: Service
+    app: service
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: Service
+      app: service
   template:
     metadata:
       labels:
-        app: Service
+        app: service
     spec:
       containers:
-        - name: Service
-          image: username/Service:latest
+        - name: service
+          image: hongsm/service:v2
           ports:
             - containerPort: 8080
           readinessProbe:
