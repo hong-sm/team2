@@ -18,7 +18,7 @@
   - [운영](#운영)
     - [동기식 호출 / 서킷 브레이킹 / 장애격리](#동기식-호출-서킷-브레이킹-장애격리)
     - [Deployment](#Deployment)
-    - [API Gateway (Ingress)](#API-Gateway-(Ingress))
+    - [API Gateway (Ingress)](#api-Gateway-Ingress)
     - [오토스케일 아웃](#오토스케일-아웃)
     - [무정지 재배포](#무정지-재배포)
 
