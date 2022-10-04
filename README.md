@@ -953,6 +953,7 @@ spring:
                   key: password
 ```
 4) mysql 서비스 구동 (pod 생성, pvc 생성, svc 생성, secret 생성) 
+ 
  4-1) pod 생성
 ```
 apiVersion: v1
