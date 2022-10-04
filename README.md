@@ -21,6 +21,7 @@
     - [API Gateway (Ingress)](#api-Gateway-Ingress)
     - [오토스케일 아웃](#오토스케일-아웃)
     - [무정지 재배포](#무정지-재배포)
+    - [Persistence Volume/ConfigMap/Secret & Polyglot](#Persistence-Volume/ConfigMap/Secret-&-Polyglot)
 
 # 서비스 시나리오
 
@@ -901,3 +902,195 @@ Concurrency:		       96.02
 ```
 
 배포기간 동안 Availability 가 변화없기 때문에 무정지 재배포가 성공한 것으로 확인됨.
+
+
+## Persistence Volume/ConfigMap/Secret & Polyglot
+
+payment 서비스에 mysql을 적용하여 위의 요건을 적용하고자 한다.
+
+1) pom.xml 변경
+   - mysql을 사용하기 위하여 dependency를 추가한다.
+```
+    	<dependency>
+	    	<groupId>mysql</groupId>
+		    <artifactId>mysql-connector-java</artifactId>
+	    </dependency>
+```
+2) application.yml 변경
+  - mysql을 사용하기 위하여 mysql 정보를 추가한다.
+```
+spring:
+  jpa:
+    hibernate:
+      naming:
+        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+      ddl-auto: update
+    properties:
+      hibernate:
+        show_sql: true
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQL57Dialect
+  datasource:
+    url: jdbc:mysql://${_DATASOURCE_ADDRESS:3306}/${_DATASOURCE_TABLESPACE}
+    username: ${_DATASOURCE_USERNAME}
+    password: ${_DATASOURCE_PASSWORD}
+    driverClassName: com.mysql.cj.jdbc.Driver
+```
+3) deployment.yaml 변경
+  - 환경 정보 사용을 위하여 해당 내용 추가한다.
+```
+          env:
+            - name: _DATASOURCE_ADDRESS
+              value: mysql
+            - name: _DATASOURCE_TABLESPACE
+              value: paymentdb
+            - name: _DATASOURCE_USERNAME
+              value: root
+            - name: _DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mysql-pass
+                  key: password
+```
+4) mysql 서비스 구동 (pod 생성, pvc 생성, svc 생성, secret 생성) 
+ 4-1) pod 생성
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mysql
+  labels:
+    name: lbl-k8s-mysql
+spec:
+  containers:
+  - name: mysql
+    image: mysql:latest
+    env:
+    - name: MYSQL_ROOT_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: mysql-pass
+          key: password
+    ports:
+    - name: mysql
+      containerPort: 3306
+      protocol: TCP
+    volumeMounts:
+    - name: k8s-mysql-storage
+      mountPath: /var/lib/mysql
+  volumes:
+  - name: k8s-mysql-storage
+    persistentVolumeClaim:
+      claimName: "fs"
+```
+4-2) pvc 생성
+```
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: fs
+  labels:
+    app: test-pvc
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Mi
+```
+4-3) service 생성
+```
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: lbl-k8s-mysql
+  name: mysql
+spec:
+  ports:
+  - port: 3306
+    protocol: TCP
+    targetPort: 3306
+  selector:
+    name: lbl-k8s-mysql
+  type: ClusterIP
+```
+4-4) secret 생성
+```
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mysql-pass
+type: Opaque
+data:
+  password: YWRtaW4=     
+```
+5) 적용 후 DB 저장 내용
+
+- 수행
+```
+root@httpie:/# http payment:8080/pays requestId=10
+HTTP/1.1 201 
+Connection: keep-alive
+Content-Type: application/json
+Date: Tue, 04 Oct 2022 02:33:06 GMT
+Keep-Alive: timeout=60
+Location: http://payment:8080/pays/1
+Transfer-Encoding: chunked
+Vary: Origin
+Vary: Access-Control-Request-Method
+Vary: Access-Control-Request-Headers
+
+{
+    "_links": {
+        "pay": {
+            "href": "http://payment:8080/pays/1"
+        }, 
+        "self": {
+            "href": "http://payment:8080/pays/1"
+        }
+    }, 
+    "payDate": "2022-10-04T02:33:07.187+00:00", 
+    "price": null, 
+    "requestId": 10, 
+    "status": null
+}
+```
+- DB 저장 결과
+```
+mysql> show databases;
++--------------------+
+| Database           |
++--------------------+
+| information_schema |
+| mysql              |
+| paymentdb          |
+| performance_schema |
+| sys                |
++--------------------+
+5 rows in set (0.00 sec)
+
+mysql> use paymentdb;
+Reading table information for completion of table and column names
+You can turn off this feature to get a quicker startup with -A
+
+Database changed
+mysql> show tables;
++---------------------+
+| Tables_in_paymentdb |
++---------------------+
+| Pay_table           |
+| hibernate_sequence  |
++---------------------+
+2 rows in set (0.00 sec)
+
+mysql> select * from Pay_table;
++----+----------------------------+-------+-----------+--------+
+| id | payDate                    | price | requestId | status |
++----+----------------------------+-------+-----------+--------+
+|  1 | 2022-10-04 02:33:07.187000 |  NULL |        10 | NULL   |
++----+----------------------------+-------+-----------+--------+
+1 row in set (0.00 sec)
+
+mysql>  
+```
