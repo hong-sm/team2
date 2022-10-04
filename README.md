@@ -16,7 +16,7 @@
     - [동기식 호출과 Fallback 처리](#동기식-호출과-Fallback-처리)
     - [비동기식 호출과 Eventual Consistency](#비동기식-호출과-Eventual-Consistency)
   - [운영](#운영)
-    - [동기식 호출 / 서킷 브레이킹 / 장애격리](#동기식-호출-서킷-브레이킹-장애격리)
+    - [서킷 브레이킹](#서킷-브레이킹)
     - [Deployment](#Deployment)
     - [API Gateway (Ingress)](#api-Gateway-Ingress)
     - [오토스케일 아웃](#오토스케일-아웃)
@@ -567,8 +567,16 @@ public class Service  {
 
 # 운영
 
-## 동기식 호출 / 서킷 브레이킹 / 장애격리
+## 서킷 브레이킹
+- 동작 환경 : Stock의 Sevice를 삭제한 상태에서 Service -> Stock 호출
+- Siege를 이용한 Service -> Stock 호출
+![image](https://user-images.githubusercontent.com/43290879/193741344-bcd19058-aed2-449e-9789-5ed55d5c61b2.png)
 
+- Fallback 호출 로그
+![image](https://user-images.githubusercontent.com/43290879/193741408-077d0699-5e02-4a26-9c66-4b27bcc5b086.png)
+
+- Stock Service가 구동하지 않는 상태
+![image](https://user-images.githubusercontent.com/43290879/193741594-ebc28239-146c-4772-b2b5-e902c8ac99b9.png)
 
 ## Deployment
 - AWS에 클러스터를 생성하여 EKS 환경 구성
