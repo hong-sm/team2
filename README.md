@@ -345,6 +345,13 @@ http PUT :8082/services/1/product-repair
 ```
 ![image](https://user-images.githubusercontent.com/43290879/193705763-774d7ffb-4796-4c1d-ada5-40b2bf7abaa2.png)
 
+```
+# CQRS를 통한 서비스 상태 확인 대시보드 ( request 서비스와 service 서비스의 정보를 조합하여 보여줌)
+http :8085/progressViews
+```
+![image](https://user-images.githubusercontent.com/43290879/193711831-af8b9002-5255-4827-a7cb-9f89ba68f16e.png)
+
+
 ## 동기식 호출과 Fallback 처리
 
 분석단계에서의 조건 중 하나로 A/S승인(service)->재고확인(stock), 수리완료(service)->결재(pay)간의 호출은 동기식 일관성을 유지하는 트랜잭션으로 처리하기로 하였다. 호출 프로토콜은 이미 앞서 Rest Repository 에 의해 노출되어있는 REST 서비스를 FeignClient 를 이용하여 호출하도록 한다. 
