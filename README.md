@@ -753,9 +753,84 @@ stock   Deployment/stock   621%/20%   1         3         3          97m
 
 
 ## 무정지 재배포
+1) siege로 부하 전송
+```
+siege -c100 -t10S -r10 --content-type "application/json" 'http://payment:8080/pays'
+```
+2) image version up
+```
+gitpod /workspace/team2/Payment (main) $ docker build -t hongsm/payment:v4 .
+Sending build context to Docker daemon   76.3MB
+Step 1/6 : FROM openjdk:15-jdk-alpine
+ ---> f02adfce91a2
+Step 2/6 : COPY target/*SNAPSHOT.jar app.jar
+ ---> Using cache
+ ---> 204bec0feb4f
+Step 3/6 : EXPOSE 8080
+ ---> Using cache
+ ---> aeffbed37567
+Step 4/6 : ENV TZ=Asia/Seoul
+ ---> Using cache
+ ---> 605a86f45f74
+Step 5/6 : RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+ ---> Using cache
+ ---> 1a759eea8ace
+Step 6/6 : ENTRYPOINT ["java","-Xmx400M","-Djava.security.egd=file:/dev/./urandom","-jar","/app.jar","--spring.profiles.active=docker"]
+ ---> Using cache
+ ---> fb1072a4b38c
+Successfully built fb1072a4b38c
+Successfully tagged hongsm/payment:v4
+gitpod /workspace/team2/Payment (main) $ docker push hongsm/payment:v4
+The push refers to repository [docker.io/hongsm/payment]
+be2e03a67fab: Layer already exists 
+2a99bbd38e24: Layer already exists 
+ca35920ce48a: Layer already exists 
+a9711b2e31f2: Layer already exists 
+50644c29ef5a: Layer already exists 
+v4: digest: sha256:2e804a132583818c878e94eb99cdfb3ce914817d5988f03d898e61b0776fcbf0 size: 1370
+gitpod /workspace/team2/Payment (main) $ kubectl apply -f kubernetes/deployment.yaml
+deployment.apps/payment configured
+```
+3) 결과 확인
+```
+root@siege:/# siege -c100 -t120S -r10 --content-type "application/json" 'http://payment:8080/pays'
+[error] CONFIG conflict: selected time and repetition based testing
+defaulting to time-based testing: 120 seconds
+** SIEGE 4.0.4
+** Preparing 100 concurrent users for battle.
+The server is now under siege...
+Lifting the server siege...
+Transactions:                  33947 hits
+Availability:                 100.00 %
+Elapsed time:                 119.95 secs
+Data transferred:              19.68 MB
+Response time:                  0.35 secs
+Transaction rate:             283.01 trans/sec
+Throughput:                     0.16 MB/sec
+Concurrency:                   99.85
+Successful transactions:       33947
+Failed transactions:               0
+Longest transaction:           15.90
+Shortest transaction:           0.00
 
+gitpod /workspace/team2/Payment (main) $ kubectl get all -l app=payment
+NAME                          READY   STATUS    RESTARTS   AGE
+pod/payment-76c75d894-l9md4   1/1     Running   0          6m35s
 
+NAME              TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+service/payment   ClusterIP   10.100.87.172   <none>        8080/TCP   3h6m
 
+NAME                      READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/payment   1/1     1            1           3h18m
+
+NAME                                 DESIRED   CURRENT   READY   AGE
+replicaset.apps/payment-5d6c958c7    0         0         0       3h1m
+replicaset.apps/payment-6678f566dd   0         0         0       161m
+replicaset.apps/payment-66b4656587   0         0         0       3h18m
+replicaset.apps/payment-76c75d894    1         1         1       6m36s
+replicaset.apps/payment-7dc8885b79   0         0         0       153m
+gitpod /workspace/team2/Payment (main) $ 
+```
 
 ## Persistence Volume/ConfigMap/Secret & Polyglot
 
